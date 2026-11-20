@@ -2,6 +2,7 @@
 
 mod blender;
 mod commands;
+mod languages;
 mod payload;
 mod settings;
 mod thumbcache;
@@ -22,6 +23,10 @@ fn main() {
             play_mouse::play_mouse_start,
             play_mouse::play_mouse_stop,
             screen_color::pick_screen_color,
+            languages::languages_folder,
+            languages::list_languages,
+            languages::read_language,
+            languages::language_stamp,
             commands::find_tf2,
             commands::index_tf2,
             commands::list_dir,

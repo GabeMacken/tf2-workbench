@@ -1,3 +1,4 @@
+import { loadLanguage, watchLanguage } from "./i18n/load"; // (first: the built-in English is in use before any other module runs)
 import { icon } from "./icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./tokens.css";
@@ -22,6 +23,13 @@ import { applyTheme } from "./theme";
 import { installSliderWheel } from "./sliderWheel";
 import { installColorWheel } from "./colorWheel";
 import { installNoNativeMenu } from "./noNativeMenu";
+
+// the language in use, read from its files before anything is built (the built-in English is in use until then, and under it)
+{
+  const s = await loadSettings();
+  await loadLanguage(s.language);
+  watchLanguage(s.languageAutoReload);
+}
 
 // files dropped from the file explorer go to the rows that take them; the page's own drags are made with the pointer (see dnd.ts)
 installPointerDnd();

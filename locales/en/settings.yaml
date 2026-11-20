@@ -1,0 +1,26 @@
+# The Settings tab. (Only its Language section is in this file so far; the rest of the tab is still written in the code.)
+language:
+  section: Language
+  language:
+    label: Language
+    description: The language of the interface. Languages are folders of the languages folder; a message a language does not have is shown in English.
+  files:
+    label: Language files
+    description: Additional language files. Defaults to English if none are found.
+    none: No languages folder found. Falling back to English.
+    open: Open folder
+    reload: Reload
+    reloaded: "Reloaded: {count, plural, =0 {no text on screen changed} one {# text on screen changed} other {# texts on screen changed}}."
+    failed: "Could not reload language: {error}"
+  autoReload:
+    label: Auto Refresh
+    description: Automatically reload the language files when they are changed.
+  showKeys:
+    label: Show message keys
+    description: Display language keys instead of translations (not saved).
+  report:
+    clean: "{language}: Language loaded successfully!"
+    summary: "{language}: {missing} missing (defaulting to English), {unknown} not used, {broken} cannot be used."
+    missing: Missing (defaulting to English)
+    unknown: Not used (typo or renamed key?)
+    broken: Could not be used

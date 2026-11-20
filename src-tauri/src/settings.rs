@@ -52,6 +52,10 @@ pub struct Settings {
     /// Key and mouse bindings the user changed, by action id ("tool.move" -> "KeyW"); an action that is missing has its default,
     /// an empty string is no binding. The ids and the default bindings are in `src/hotkeys.ts`.
     pub hotkeys: BTreeMap<String, String>,
+    /// The language of the interface: a folder of the languages folder (see languages.rs); "en" by default.
+    pub language: String,
+    /// The language's files are read again when they change, and the interface shows the new text (off by default).
+    pub language_auto_reload: bool,
 }
 
 impl Default for Settings {
@@ -80,6 +84,8 @@ impl Default for Settings {
             screenshot_scale: 2,
             screenshot_transparent: true,
             hotkeys: BTreeMap::new(),
+            language: "en".into(),
+            language_auto_reload: false,
         }
     }
 }

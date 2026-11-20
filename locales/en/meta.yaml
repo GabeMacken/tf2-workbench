@@ -1,0 +1,3 @@
+# The language: its name in the Settings list, and its locale (how numbers are written and which plural forms it has).
+name: English
+locale: en-US

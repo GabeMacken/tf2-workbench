@@ -1,6 +1,8 @@
 import type { Settings } from "./api";
 import { attachNumberDrag } from "./viewer/numberDrag";
-import { clearTauntCache, tauntCachePath } from "./api";
+import { clearTauntCache, languagesFolder, listLanguages, revealFile, tauntCachePath } from "./api";
+import { languageNames, onLanguageLoaded, reloadLanguage, watchLanguage } from "./i18n/load";
+import { languageReport, refreshDom, setShowKeys, showingKeys, tr, type LanguageReport } from "./i18n/strings";
 import { loadSettings, onSettingsChange, settings as currentSettings, updateSetting, updateSettings } from "./settingsStore";
 import { DEFAULT_ACCENT, DEFAULT_BASE, normaliseAccent, normaliseBase } from "./theme";
 import { createHotkeysSection } from "./hotkeysUi";
@@ -20,6 +22,7 @@ const SECTIONS = [
   { id: "hotkeys", label: "Hotkeys" },
   { id: "rigs", label: "Rigs" },
   { id: "storage", label: "Storage" },
+  { id: "language", label: tr("settings.language.section") },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 const SECTION_KEY = "tf2workbench.settingsSection";
@@ -186,7 +189,106 @@ export async function createSettingsUi(root: HTMLElement) {
     hotkeys: () => [createHotkeysSection()],
     rigs: () => [createRigSettings()],
     storage: () => [cacheGroup()],
+    language: () => [languageGroup()],
   };
+
+  /** The language: which one, its files (reloaded at once, or when they change), its keys shown, and what is wrong with it. */
+  function languageGroup(): HTMLElement {
+    const pick = document.createElement("select");
+    pick.add(new Option("English", "en"));
+    pick.value = settings.language;
+    void listLanguages().then(languageNames).then((names) => {
+      if (!names.has("en")) names.set("en", "English");
+      pick.replaceChildren(...[...names].map(([code, name]) => new Option(name, code)));
+      if (!names.has(settings.language)) pick.add(new Option(settings.language, settings.language));
+      pick.value = settings.language;
+    }).catch(() => {});
+    pick.onchange = async () => {
+      settings = { ...settings, language: pick.value };
+      try { await updateSetting("language", pick.value); } catch (e) { failed(e); return; }
+      await reloadLanguage(pick.value).catch((e) => failed(e));
+    };
+
+    const folder = document.createElement("span");
+    folder.className = "dim tauntCachePath";
+    const open = button(tr("settings.language.files.open"), () => { if (folder.title) void revealFile(folder.title); });
+    const reload = button(tr("settings.language.files.reload"), async () => {
+      try { status.textContent = tr("settings.language.files.reloaded", { count: await reloadLanguage() }); }
+      catch (e) { status.textContent = tr("settings.language.files.failed", { error: String(e) }); }
+    });
+    const status = document.createElement("span");
+    status.className = "dim";
+    status.setAttribute("role", "status");
+    const buttons = document.createElement("span");
+    buttons.className = "btns";
+    buttons.append(open, reload);
+    const files = plainRow(row(tr("settings.language.files.label"), tr("settings.language.files.description"), buttons));
+    files.querySelector(".setText")!.append(folder, status);
+    void languagesFolder().then((dir) => {
+      folder.textContent = dir || tr("settings.language.files.none");
+      folder.title = dir;
+      open.disabled = reload.disabled = !dir;
+    });
+
+    const auto = document.createElement("input");
+    auto.type = "checkbox";
+    auto.checked = settings.languageAutoReload;
+    auto.onchange = async () => {
+      settings = { ...settings, languageAutoReload: auto.checked };
+      try { await updateSetting("languageAutoReload", auto.checked); } catch (e) { failed(e); return; }
+      watchLanguage(auto.checked);
+    };
+    const keys = document.createElement("input");
+    keys.type = "checkbox";
+    keys.checked = showingKeys();
+    keys.onchange = () => { setShowKeys(keys.checked); refreshDom(); };
+
+    const report = document.createElement("div");
+    report.className = "setRow languageReport";
+    const showReport = (r: LanguageReport) => {
+      const name = pick.selectedOptions[0]?.text || r.language;
+      const head = document.createElement("span");
+      head.className = "dim";
+      head.textContent = r.missing.length || r.unknown.length || r.broken.length
+        ? tr("settings.language.report.summary", { language: name, missing: r.missing.length, unknown: r.unknown.length, broken: r.broken.length })
+        : tr("settings.language.report.clean", { language: name });
+      const list = (title: string, lines: string[]) => {
+        if (!lines.length) return [];
+        const d = document.createElement("details");
+        const s = document.createElement("summary");
+        s.textContent = `${title} (${lines.length})`;
+        const pre = document.createElement("pre");
+        pre.textContent = lines.join("\n");
+        d.append(s, pre);
+        return [d];
+      };
+      report.replaceChildren(head, ...list(tr("settings.language.report.broken"), r.broken.map((b) => `${b.key}: ${b.error}`)),
+        ...list(tr("settings.language.report.missing"), r.missing), ...list(tr("settings.language.report.unknown"), r.unknown));
+    };
+    showReport(languageReport());
+    onLanguageLoaded(showReport);
+
+    return group("",
+      row(tr("settings.language.language.label"), tr("settings.language.language.description"), pick),
+      files,
+      row(tr("settings.language.autoReload.label"), tr("settings.language.autoReload.description"), auto),
+      row(tr("settings.language.showKeys.label"), tr("settings.language.showKeys.description"), keys),
+      report);
+  }
+  function button(label: string, run: () => void): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.onclick = run;
+    return b;
+  }
+  /** A row as a plain box (a label would turn a click anywhere on it into a click on its first button). */
+  function plainRow(el: HTMLElement): HTMLElement {
+    const plain = document.createElement("div");
+    plain.className = el.className;
+    plain.append(...el.childNodes);
+    return plain;
+  }
 
   let active: SectionId = "general";
   try { const saved = localStorage.getItem(SECTION_KEY) as SectionId | null; if (SECTIONS.some((s) => s.id === saved)) active = saved!; } catch { /* no storage: the first section */ }

@@ -52,6 +52,8 @@ npm run build     type check and production build
 
 Settings, the last session, poses and custom effects are kept in `%APPDATA%\dev.tf2workbench.app`.
 
+The interface's text is in language files (`locales/`), read when the app runs: see [docs/INTERFACE_TEXT.md](docs/INTERFACE_TEXT.md).
+
 ## License and notices
 
 GPL-3.0-or-later (see [LICENSE](LICENSE)). Parts of the code follow the Valve Source 1 SDK and stay under its license: see

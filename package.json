@@ -5,8 +5,9 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/i18n-types.mjs && vite",
+    "build": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/i18n-types.mjs && tsc --noEmit && vite build",
+    "strings": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/i18n-types.mjs",
     "tauri": "tauri",
     "test": "node tests/run.mjs"
   },
@@ -16,7 +17,8 @@
     "ag-psd": "^31.0.3",
     "mp4-muxer": "^5.2.2",
     "three": "^0.170.0",
-    "webm-muxer": "^5.1.4"
+    "webm-muxer": "^5.1.4",
+    "yaml": "2.8.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

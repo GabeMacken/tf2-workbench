@@ -9,7 +9,8 @@ import { showContextMenu } from "./contextMenu";
 import { rotateLightDirection } from "./lighting";
 import { shotEffectsOf, SHADOW_BLENDS, type ShadowBlend, DEFAULT_SHOT_EFFECTS, LINEUP_SPACING, PROMO_FOV, solidOf } from "./promo";
 import { createBackdropPicker } from "./backdropPicker";
-import { DEFAULT_STUDIO, STUDIO_LABELS, STUDIO_ROLES, flipStudio, parseStudio, randomStudio, type StudioLight } from "./studioLight";
+import { DEFAULT_STUDIO, STUDIO_ROLES, flipStudio, parseStudio, randomStudio, type StudioLight } from "./studioLight";
+import { tr, trHtml } from "../i18n/strings";
 import { createStudioSphere } from "./studioSphere";
 import { defaultMask, partsOf, type KeepPart, type LayerMask } from "./promoMask";
 import { DEFAULT_GROUND_SPEC, layer, LAYER_BLENDS, type GroundSpec, type LayerBlend, type OverlaySpec } from "./promo";
@@ -123,24 +124,24 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   root.innerHTML = `<div class="promoBoard">
     <aside class="promoSide">
       <h2 class="promoTitle"></h2>
-      <p class="dim hint promoNote">The look of every picture of the set.</p>
-      <h3>Backdrop <button class="promoShuffle" title="Another random neutral gradient">Shuffle</button></h3>
+      <p class="dim hint promoNote">${trHtml("promos.board.look.note")}</p>
+      <h3>${trHtml("promos.common.backdrop")} <button class="promoShuffle" title="${trHtml("promos.board.look.shuffle.title")}">${trHtml("promos.board.look.shuffle.label")}</button></h3>
       <div class="promoLookBackdrop"></div>
-      <h3>Glow round the characters</h3>
+      <h3>${trHtml("promos.board.look.glowHeader")}</h3>
       <div class="promoLookGlow"></div>
-      <h3>Shadows</h3>
+      <h3>${trHtml("promos.board.look.shadowsHeader")}</h3>
       <div class="promoLookShadow"></div>
-      <h3>3D effects in the shots</h3>
+      <h3>${trHtml("promos.board.look.effectsHeader")}</h3>
       <div class="promoLookFx"></div>
       <div class="promoSideFoot">
         <p class="chartInfo promoStatus" role="status"></p>
-        <div class="btns"><button class="promoNew" title="Make the pictures of another set">New set…</button><button class="promoExportPsd" title="Every picture as a Photoshop file, each layer of it a layer (texts editable, the glow and the text outline and shadow as layer effects)">Export PSDs…</button><button class="primary promoExportAll">Export all…</button></div>
+        <div class="btns"><button class="promoNew" title="${trHtml("promos.board.newSet.title")}">${trHtml("promos.board.newSet.label")}</button><button class="promoExportPsd" title="${trHtml("promos.board.export.psd.title")}">${trHtml("promos.board.export.psd.label")}</button><button class="primary promoExportAll">${trHtml("promos.board.export.all.label")}</button></div>
       </div>
     </aside>
     <main class="promoCenter">
-      <div class="promoThumbs" role="listbox" aria-label="Pictures"></div>
+      <div class="promoThumbs" role="listbox" aria-label="${trHtml("promos.board.pages.aria")}"></div>
       <div class="promoStage"><canvas class="promoPreview"></canvas></div>
-      <p class="promoHelp dim">Click a shot to select it (Shift-click for more) · drag to move · corners or wheel to size · right-drag to turn the camera round it · click a paint of a chart to take it out · Ctrl+C, then Ctrl+V pastes a layer as a copy of its own, Ctrl+Shift+V linked (the same shot and place) · Delete takes it out · the bar under a selection fades it out (a gradient drawn by dragging, as in Photoshop) and turns its shadow on or off</p>
+      <p class="promoHelp dim">${trHtml("promos.board.help")}</p>
     </main>
     <aside class="promoInspector"></aside>
   </div>`;
@@ -401,7 +402,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   function editMask(l: PromoLayer | null) {
     maskEdit = l;
     maskHover = null;
-    status.textContent = l ? (l.mask ? "Drag the handles to shape the fade, or drag across the picture to draw it again (Shift: in steps of 15°). Esc when done." : "Drag across the picture to draw the fade: from where it shows to where it is gone (Shift: in steps of 15°).") : "";
+    status.textContent = l ? (l.mask ? tr("promos.board.mask.statusShaping") : tr("promos.board.mask.statusDrawing")) : "";
     preview.classList.toggle("masking", !!l);
     preview.style.cursor = "";
     drawPreview();
@@ -531,8 +532,8 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     };
     const sep = () => { const s = document.createElement("span"); s.className = "sep"; row.append(s); };
     const m = l.mask;
-    button("move", "Move, size and turn it", maskEdit !== l, () => editMask(null));
-    button("blend", m ? (maskEdit === l ? "Done shaping the fade (Esc)" : "Shape the fade mask") : "Add a fade mask: drag across the picture to draw it", maskEdit === l, () => editMask(maskEdit === l ? null : l));
+    button("move", tr("promos.board.mask.move"), maskEdit !== l, () => editMask(null));
+    button("blend", m ? (maskEdit === l ? tr("promos.board.mask.done") : tr("promos.board.mask.shape")) : tr("promos.board.mask.add"), maskEdit === l, () => editMask(maskEdit === l ? null : l));
     if (maskEdit === l) {
       // the kind: a mask that has one changes to the other, keeping where it is; without one, the kind a drag draws (or a click makes)
       const seg = document.createElement("div");
@@ -540,8 +541,8 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       for (const k of ["linear", "radial"] as const) {
         const b = document.createElement("button");
         b.type = "button";
-        b.textContent = k === "linear" ? "Linear" : "Radial";
-        b.title = k === "linear" ? "A straight fade, from one line to another" : "A round fade, from the middle out (its shape and softness by its handles)";
+        b.textContent = k === "linear" ? tr("promos.board.mask.linear") : tr("promos.board.mask.radial");
+        b.title = k === "linear" ? tr("promos.board.mask.linearTitle") : tr("promos.board.mask.radialTitle");
         b.classList.toggle("on", (m?.kind ?? maskKind) === k);
         b.onclick = () => {
           setMaskKind(k);
@@ -567,7 +568,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       const shown = !l.shot.noShadow;
       const lab = document.createElement("label");
       lab.className = "shadowToggle";
-      lab.title = shown ? "Its shadow on the ground: shown (untick to take it off this shot)" : "Its shadow on the ground: off (tick to bring it back)";
+      lab.title = shown ? tr("promos.board.mask.shadowShown") : tr("promos.board.mask.shadowOff");
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = shown;
@@ -578,7 +579,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         drawPreview();
         draw(p);
       };
-      lab.append("Shadow", cb);
+      lab.append(tr("promos.common.shadow"), cb);
       main.append(lab);
     }
     // the fade's other controls: on a row under it, while it is being shaped
@@ -586,27 +587,27 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     bar.append(extra);
     row = extra;
     if (m) {
-      button("arrowDownUp", "The other way round: show where it fades, fade where it shows", m.invert, () => { m.invert = !m.invert; maskChanged(l); });
-      button(m.on ? "eye" : "eyeOff", m.on ? "Hide the fade (to compare; it is kept)" : "Show the fade", !m.on, () => { m.on = !m.on; maskChanged(l); });
+      button("arrowDownUp", tr("promos.board.mask.invert"), m.invert, () => { m.invert = !m.invert; maskChanged(l); });
+      button(m.on ? "eye" : "eyeOff", m.on ? tr("promos.board.mask.hide") : tr("promos.board.mask.show"), !m.on, () => { m.on = !m.on; maskChanged(l); });
       if (l.shot) {
         sep();
-        const keep = (part: KeepPart, name: Parameters<typeof icon>[0], label: string) =>
-          button(name, `Keep ${label} whole wherever the fade falls`, m.keep.includes(part), () => {
+        const keep = (part: KeepPart, name: Parameters<typeof icon>[0], title: string) =>
+          button(name, title, m.keep.includes(part), () => {
             m.keep = m.keep.includes(part) ? m.keep.filter((x) => x !== part) : [...m.keep, part];
             maskChanged(l);
             // the parts picture comes with the shot: taken again once, when a part is first kept
             if (m.keep.length && !partsOf.has(l.image)) {
               l.shot!.parts = true;
-              status.textContent = "Finding the parts of the character…";
+              status.textContent = tr("promos.board.mask.findingParts");
               queueRetake(p, l);
             } else l.shot!.parts = m.keep.length > 0 || undefined;
           });
-        keep("arms", "hand", "the arms and hands");
-        keep("head", "scanFace", "the head");
-        keep("weapon", "sword", "what it holds");
+        keep("arms", "hand", tr("promos.board.mask.keep.arms"));
+        keep("head", "scanFace", tr("promos.board.mask.keep.head"));
+        keep("weapon", "sword", tr("promos.board.mask.keep.weapon"));
       }
       sep();
-      button("trash2", "Take the fade mask off", false, () => { l.mask = undefined; maskChanged(l); if (maskEdit === l) editMask(null); });
+      button("trash2", tr("promos.board.mask.remove"), false, () => { l.mask = undefined; maskChanged(l); if (maskEdit === l) editMask(null); });
     }
   }
   const layerIds = new WeakMap<PromoLayer, number>();
@@ -793,7 +794,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       while (waiting.size) {
         const [l, job] = waiting.entries().next().value!;
         waiting.delete(l);
-        status.textContent = "Taking the shot again…";
+        status.textContent = tr("promos.board.status.retaking");
         try {
           if (job.before) {
             const was = snapshot();
@@ -819,7 +820,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
           // (a drag's steps one a frame at most, with the app's own frames between them)
           if (job.live) await new Promise((res) => requestAnimationFrame(res));
         } catch (err) {
-          status.textContent = `Could not take it again: ${String(err)}`;
+          status.textContent = tr("promos.board.status.retakeFailed", { error: String(err) });
         }
       }
     } finally {
@@ -978,7 +979,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     ownRow.replaceChildren();
     const p = picked;
     if (!p) return;
-    const c = check(ownRow, "Only this page", !!p.backdrop, (v) => {
+    const c = check(ownRow, tr("promos.board.look.ownBackdrop.label"), !!p.backdrop, (v) => {
       const was = snapshot();
       p.backdrop = v ? { ...look.backdrop } : null;
       pushUndo(was);
@@ -986,9 +987,9 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       host.changed();
       showLookBackdrop();
       showInspector();
-    }, "This page's own backdrop, in place of the one every picture has (the picker above then changes this page's)");
+    }, tr("promos.board.look.ownBackdrop.title"));
     c.closest("label")?.classList.add("promoOwnBackdrop");
-    ownNote.textContent = p.backdrop ? "The backdrop of this page alone; the rest is the look of every picture." : "The look of every picture of the set.";
+    ownNote.textContent = p.backdrop ? tr("promos.board.look.noteOwn") : tr("promos.board.look.note");
   };
   lookBackdrop.append(lookPicker.el, ownRow);
   $(".promoShuffle").onclick = () => { setBackdrop(randomBackdrop()); lookPicker.refresh(); };
@@ -996,30 +997,30 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   const strokeBox = document.createElement("div");
   function showLookStroke() {
     strokeBox.innerHTML = "";
-    check(strokeBox, "Border", look.stroke.on, (v) => { look.stroke.on = v; changedLook(); }, "A line round every picture, inside its edge");
-    field(strokeBox, "Width", range(0, 16, 0.5, look.stroke.width, (v) => { look.stroke.width = v; changedLook(); }));
-    field(strokeBox, "Inset", range(0, 120, 1, look.stroke.inset, (v) => { look.stroke.inset = v; changedLook(); }));
-    field(strokeBox, "Corners", range(0, 200, 1, look.stroke.radius, (v) => { const was = look.stroke.radius; look.stroke.radius = v; changedLook(); if ((was > 0) !== (v > 0)) showLookStroke(); }), "How round the corners are (0: square)");
-    if (look.stroke.radius > 0) check(strokeBox, "Cut the corners", look.stroke.cut, (v) => { look.stroke.cut = v; changedLook(); }, "The picture cut round the border's corners (transparent outside them), not square behind them");
+    check(strokeBox, tr("promos.common.border"), look.stroke.on, (v) => { look.stroke.on = v; changedLook(); }, tr("promos.board.look.border.title"));
+    field(strokeBox, tr("promos.common.width"), range(0, 16, 0.5, look.stroke.width, (v) => { look.stroke.width = v; changedLook(); }));
+    field(strokeBox, tr("promos.board.look.inset"), range(0, 120, 1, look.stroke.inset, (v) => { look.stroke.inset = v; changedLook(); }));
+    field(strokeBox, tr("promos.board.look.corners.label"), range(0, 200, 1, look.stroke.radius, (v) => { const was = look.stroke.radius; look.stroke.radius = v; changedLook(); if ((was > 0) !== (v > 0)) showLookStroke(); }), tr("promos.board.look.corners.title"));
+    if (look.stroke.radius > 0) check(strokeBox, tr("promos.board.look.cutCorners.label"), look.stroke.cut, (v) => { look.stroke.cut = v; changedLook(); }, tr("promos.board.look.cutCorners.title"));
     // its colour: the backdrop's, made lighter (a brighter band of the same gradient), or one of its own
     const mode = document.createElement("select");
-    mode.add(new Option("The backdrop's", "backdrop"));
-    mode.add(new Option("Its own", "colour"));
+    mode.add(new Option(tr("promos.board.look.borderColour.backdrop"), "backdrop"));
+    mode.add(new Option(tr("promos.board.look.borderColour.own"), "colour"));
     mode.value = look.stroke.mode;
     mode.onchange = () => { look.stroke.mode = mode.value as "backdrop" | "colour"; changedLook(); showLookStroke(); };
-    field(strokeBox, "Colour", mode);
-    if (look.stroke.mode === "backdrop") field(strokeBox, "Lighter", range(0, 1, 0.01, look.stroke.lighten, (v) => { look.stroke.lighten = v; changedLook(); }));
-    else field(strokeBox, "Its colour", colour(look.stroke.color, (v) => { look.stroke.color = v; changedLook(); }));
-    field(strokeBox, "Opacity", range(0, 1, 0.01, look.stroke.opacity, (v) => { look.stroke.opacity = v; changedLook(); }));
+    field(strokeBox, tr("promos.common.colour"), mode);
+    if (look.stroke.mode === "backdrop") field(strokeBox, tr("promos.board.look.lighter"), range(0, 1, 0.01, look.stroke.lighten, (v) => { look.stroke.lighten = v; changedLook(); }));
+    else field(strokeBox, tr("promos.board.look.ownColour"), colour(look.stroke.color, (v) => { look.stroke.color = v; changedLook(); }));
+    field(strokeBox, tr("promos.common.opacity"), range(0, 1, 0.01, look.stroke.opacity, (v) => { look.stroke.opacity = v; changedLook(); }));
   }
   showLookStroke();
   const glowBox = $(".promoLookGlow");
   function showLookGlow() {
     glowBox.innerHTML = "";
     const g = (look.glow ??= { ...DEFAULT_GLOW });
-    check(glowBox, "Glow", g.on, (v) => { g.on = v; changedLook(); }, "A dark glow round the characters, so they stand out from the backdrop");
-    field(glowBox, "Size", range(2, 80, 1, g.size, (v) => { g.size = v; changedLook(); }));
-    field(glowBox, "Strength", range(0.05, 1, 0.01, g.strength, (v) => { g.strength = v; changedLook(); }));
+    check(glowBox, tr("promos.board.look.glow.label"), g.on, (v) => { g.on = v; changedLook(); }, tr("promos.board.look.glow.title"));
+    field(glowBox, tr("promos.common.size"), range(2, 80, 1, g.size, (v) => { g.size = v; changedLook(); }));
+    field(glowBox, tr("promos.common.strength"), range(0.05, 1, 0.01, g.strength, (v) => { g.strength = v; changedLook(); }));
   }
   showLookGlow();
   // the 3D view's effects in the shots: they are taken again with them (a shot's shadow is not part of it for the handles and clicks)
@@ -1045,7 +1046,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const fx = (look.effects ??= structuredClone(DEFAULT_SHOT_EFFECTS));
     const box = (label: string, get: () => boolean, set: (v: boolean) => void, title: string) =>
       check(fxBox, label, get(), (v) => { set(v); changedEffects(true); showLookFx(); }, title);
-    box("The 3D view's look", () => fx.look, (v) => (fx.look = v), "The post-processing of the 3D view (its colour grade, bloom, ambient occlusion, depth of field, and so on) in every shot, as the view has it now");
+    box(tr("promos.board.look.viewLook.label"), () => fx.look, (v) => (fx.look = v), tr("promos.board.look.viewLook.title"));
   }
   showLookFx();
   // the shadows: each character's, cast in its 3D scene onto the floor from one light for every shot (the characters are turned, the
@@ -1055,23 +1056,23 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   function showLookShadow() {
     shadowBox.innerHTML = "";
     const s = (look.effects ??= structuredClone(DEFAULT_SHOT_EFFECTS)).shadow;
-    check(shadowBox, "Shadows", s.on, (v) => { s.on = v; changedEffects(true); showLookShadow(); }, "The shadow each character casts on the floor (the items shown alone cast none)");
+    check(shadowBox, tr("promos.board.look.shadows.label"), s.on, (v) => { s.on = v; changedEffects(true); showLookShadow(); }, tr("promos.board.look.shadows.title"));
     if (!s.on) return;
     const shape = (label: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, title: string, show?: (v: number) => string) =>
       field(shadowBox, label, range(min, max, step, get(), (v) => { set(v); changedEffects(); }, show), title);
-    shape("Direction", -180, 180, 1, () => (((s.azimuth + 180) % 360) + 360) % 360 - 180, (v) => (s.azimuth = v), "Which way the shadows fall (0: straight back, behind the characters)", (v) => `${v}°`);
-    shape("Spread", -1, 1, 0.01, () => s.spread ?? 0, (v) => (s.spread = v), "0: the shadows are parallel; above, they fan out (a light near them); below, they converge (toward a point beyond them)");
-    shape("Length", 0.05, 2, 0.01, () => s.length, (v) => (s.length = v), "How long a shadow is for the height of what casts it");
-    shape("Softness", 0, 4, 0.01, () => s.blur, (v) => (s.blur = v), "How blurred the shadows are");
-    shape("Taper", 0, 1, 0.01, () => s.taper ?? 0, (v) => (s.taper = v), "How much lighter the shadows get the farther they reach from the feet (dark at the feet)");
-    field(shadowBox, "Colour", colour(s.color ?? "#000000", (v) => { s.color = v; changedLook(); }), "The shadows' colour: black, or a hue of the backdrop's (a deep blue or purple looks softer than black; at once)");
+    shape(tr("promos.board.look.shadows.direction.label"), -180, 180, 1, () => (((s.azimuth + 180) % 360) + 360) % 360 - 180, (v) => (s.azimuth = v), tr("promos.board.look.shadows.direction.title"), (v) => `${v}°`);
+    shape(tr("promos.board.look.shadows.spread.label"), -1, 1, 0.01, () => s.spread ?? 0, (v) => (s.spread = v), tr("promos.board.look.shadows.spread.title"));
+    shape(tr("promos.board.look.shadows.length.label"), 0.05, 2, 0.01, () => s.length, (v) => (s.length = v), tr("promos.board.look.shadows.length.title"));
+    shape(tr("promos.common.softness"), 0, 4, 0.01, () => s.blur, (v) => (s.blur = v), tr("promos.board.look.shadows.softness.title"));
+    shape(tr("promos.board.look.shadows.taper.label"), 0, 1, 0.01, () => s.taper ?? 0, (v) => (s.taper = v), tr("promos.board.look.shadows.taper.title"));
+    field(shadowBox, tr("promos.common.colour"), colour(s.color ?? "#000000", (v) => { s.color = v; changedLook(); }), tr("promos.board.look.shadows.colour.title"));
     const blend = document.createElement("select");
     for (const [value, label] of SHADOW_BLENDS) blend.add(new Option(label, value));
     blend.value = s.blend ?? "source-over";
     blend.onchange = () => { s.blend = blend.value as ShadowBlend; changedLook(); };
     wheelSelect(blend);
-    field(shadowBox, "Blend", blend, "How the shadows are laid on the backdrop: Multiply darkens it by their colour (the best with a colour), Colour burn deepens and saturates it, Soft light and Overlay are gentler (at once)");
-    field(shadowBox, "Opacity", range(0, 1, 0.01, s.opacity, (v) => { s.opacity = v; changedLook(); if (look.effects?.look) changedEffects(); }), "How dark the shadows are (at once: the shots are not taken again)");
+    field(shadowBox, tr("promos.common.blend"), blend, tr("promos.board.look.shadows.blend.title"));
+    field(shadowBox, tr("promos.common.opacity"), range(0, 1, 0.01, s.opacity, (v) => { s.opacity = v; changedLook(); if (look.effects?.look) changedEffects(); }), tr("promos.board.look.shadows.opacity.title"));
   }
   showLookShadow();
   // (with spread shadows, the shots that do not know where their picture's middle is yet, such as a set's just made, are taken again)
@@ -1138,13 +1139,13 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       thumbs.set(p, canvas);
       card.onclick = () => { if (dragged) { dragged = false; return; } pick(p); };
       dragCard(card, p, cards);
-      caption.title = "Double-click to rename";
+      caption.title = tr("promos.board.pages.renameHint");
       caption.ondblclick = (e) => { e.stopPropagation(); renameCard(card, caption, p); };
       card.oncontextmenu = (e) => {
         e.preventDefault();
         showContextMenu(e.clientX, e.clientY, [
-          { label: "New page after it", run: () => addPage(p) },
-          { label: "Delete this page", disabled: pictures.length < 2, run: () => deletePage(p) },
+          { label: tr("promos.board.pages.newAfter"), run: () => addPage(p) },
+          { label: tr("promos.board.pages.delete"), disabled: pictures.length < 2, run: () => deletePage(p) },
         ]);
       };
     }
@@ -1154,8 +1155,8 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   // a new blank page, the size of the one shown
   const add = document.createElement("button");
   add.className = "promoThumbAdd";
-  add.title = "A new page: blank, with this page's overlays, a copy of it, a square thumbnail or a paint chart";
-  add.setAttribute("aria-label", "New page");
+  add.title = tr("promos.board.pages.add.title");
+  add.setAttribute("aria-label", tr("promos.board.pages.add.aria"));
   add.innerHTML = icon("plus");
   add.style.height = `${THUMB_H}px`;
   add.onclick = () => {
@@ -1163,14 +1164,14 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const like = picked;
     const overlays = !!like?.layers.some((l) => l.overlay);
     showContextMenu(r.left, r.bottom + 4, [
-      { label: "Blank page", run: () => addPage(like) },
-      { label: "With this page's overlays", disabled: !overlays, run: () => addPage(like, "overlays") },
-      { label: "Copy of this page", disabled: !like, run: () => addPage(like, "all") },
+      { label: tr("promos.board.pages.add.blank"), run: () => addPage(like) },
+      { label: tr("promos.board.pages.add.overlays"), disabled: !overlays, run: () => addPage(like, "overlays") },
+      { label: tr("promos.board.pages.add.copy"), disabled: !like, run: () => addPage(like, "all") },
       "-",
-      { label: "Square thumbnail (512 × 512)", run: () => addPage(like, "blank", { w: 512, h: 512, kind: "Thumbnail" }) },
-      { label: "Square thumbnail with the overlays", disabled: !overlays, run: () => addPage(like, "overlays", { w: 512, h: 512, kind: "Thumbnail" }) },
+      { label: tr("promos.board.pages.add.thumbnail"), run: () => addPage(like, "blank", { w: 512, h: 512, kind: "Thumbnail" }) },
+      { label: tr("promos.board.pages.add.thumbnailOverlays"), disabled: !overlays, run: () => addPage(like, "overlays", { w: 512, h: 512, kind: "Thumbnail" }) },
       "-",
-      { label: "Paint chart…", run: () => chartPopup(r.left, r.bottom + 4) },
+      { label: tr("promos.board.pages.add.paintChart"), run: () => chartPopup(r.left, r.bottom + 4) },
     ]);
   };
   thumbsBox.appendChild(add);
@@ -1182,7 +1183,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const input = document.createElement("input");
     input.className = "renameKind";
     input.value = p.kind;
-    input.setAttribute("aria-label", "Page name");
+    input.setAttribute("aria-label", tr("promos.board.pages.nameAria"));
     let done = false;
     const finish = (keep: boolean) => {
       if (done) return;
@@ -1640,28 +1641,28 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const p = picked;
     inspector.innerHTML = "";
     if (!p) {
-      inspector.innerHTML = `<p class="dim">Pick a picture above.</p>`;
+      inspector.innerHTML = `<p class="dim">${trHtml("promos.board.inspector.pickPicture")}</p>`;
       return;
     }
     pictureBox.innerHTML = "";
-    heading(pictureBox, `${p.kind} picture`, cardTitle(p)).classList.add("first");
+    heading(pictureBox, tr("promos.board.picture.header", { kind: p.kind }), cardTitle(p)).classList.add("first");
     const name = document.createElement("input");
     name.type = "text";
     name.value = p.name;
-    name.setAttribute("aria-label", "File name");
+    name.setAttribute("aria-label", tr("promos.board.picture.fileName"));
     name.oninput = () => {
       p.name = name.value.replace(/[\\/:*?"<>|]+/g, "").trim() || p.name;
       thumbs.get(p)!.parentElement!.title = cardTitle(p);
     };
-    field(pictureBox, "File name", name);
+    field(pictureBox, tr("promos.board.picture.fileName"), name);
     // the layers, top first as in an image editor: the border over everything, the captions, the shots (drag one up or down to put
     // it over or under the others, the eye shows or hides it, Shift-click selects more), the backdrop under everything
     const lh = document.createElement("h3");
-    lh.textContent = "Layers";
+    lh.textContent = tr("promos.common.layers");
     const stack = document.createElement("div");
     stack.className = "promoStack";
     stack.setAttribute("role", "listbox");
-    stack.setAttribute("aria-label", "Layers");
+    stack.setAttribute("aria-label", tr("promos.common.layers"));
     const fixedRow = (name: string, note: string) => {
       const row = document.createElement("div");
       row.className = "hierRow fixed";
@@ -1713,10 +1714,10 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         row.className = "hierRow border hierObject";
         row.classList.toggle("selected", borderPicked);
         row.classList.toggle("primary", borderPicked);
-        row.title = "Click for its settings · drag up or down: the layers above it are drawn over the border";
+        row.title = tr("promos.board.picture.borderRow");
         row.onclick = () => { selectOnly(null); borderPicked = true; showInspector(); drawPreview(); };
-        row.innerHTML = `<span class="hierIcon">${icon(BORDER_ICON)}</span><span class="hierLabel">Border</span>`;
-        dragRow(row, BORDER, "Border");
+        row.innerHTML = `<span class="hierIcon">${icon(BORDER_ICON)}</span><span class="hierLabel">${trHtml("promos.common.border")}</span>`;
+        dragRow(row, BORDER, tr("promos.common.border"));
         stack.appendChild(row);
         continue;
       }
@@ -1726,7 +1727,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       row.classList.toggle("selected", selection.includes(l));
       row.classList.toggle("primary", l === layerPicked);
       row.classList.toggle("dimmed", l.hidden);
-      row.title = "Drag up or down to put it over or under the others (and the border) · Shift-click to select more";
+      row.title = tr("promos.board.picture.layerRow");
       row.setAttribute("role", "option");
       row.setAttribute("aria-selected", String(selection.includes(l)));
       const kind = document.createElement("span");
@@ -1741,13 +1742,13 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         const chain = document.createElement("span");
         chain.className = "hierIcon promoChain";
         chain.innerHTML = icon(LINK_ICON);
-        chain.title = `Linked: the same shot and place in ${linked} other picture${linked === 1 ? "" : "s"}`;
+        chain.title = tr("promos.board.picture.linkedChain", { count: linked });
         row.appendChild(chain);
       }
       const eye = document.createElement("button");
       eye.className = "hierEye";
       eye.innerHTML = icon(l.hidden ? HIDDEN_ICON : EYE_ICON);
-      eye.title = l.hidden ? "Show" : "Hide";
+      eye.title = l.hidden ? tr("promos.common.show") : tr("promos.common.hide");
       eye.setAttribute("aria-pressed", String(l.hidden));
       eye.onclick = (e) => { e.stopPropagation(); l.hidden = !l.hidden; draw(p); placeShared(l); showInspector(); };
       row.appendChild(eye);
@@ -1762,19 +1763,19 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       dragRow(row, l, l.name);
       stack.appendChild(row);
     }
-    fixedRow(p.backdrop ? "Backdrop (its own)" : "Backdrop", p.backdrop ? "" : "every picture");
+    fixedRow(p.backdrop ? tr("promos.board.picture.ownBackdrop") : tr("promos.common.backdrop"), p.backdrop ? "" : tr("promos.board.picture.everyPicture"));
     pictureBox.append(lh, stack);
     // what can be added to the picture, and what the selected layer can do (copied, duplicated, deleted), in one row under the layers
-    const addRow = buttons(pictureBox, [{ label: "+ Add", title: "Add a text, a character or an image to this picture", run: () => {
+    const addRow = buttons(pictureBox, [{ label: tr("promos.board.picture.add.label"), title: tr("promos.board.picture.add.title"), run: () => {
       const r = addRow.querySelector("button")!.getBoundingClientRect();
       showContextMenu(r.left, r.bottom + 4, [
-        { label: "Text", run: () => void addLayer(p, async () => textLayer("Text", { ...DEFAULT_TEXT }, p.w / 2, p.h / 2)) },
+        { label: tr("promos.common.text"), run: () => void addLayer(p, async () => textLayer(tr("promos.common.text"), { ...DEFAULT_TEXT }, p.w / 2, p.h / 2)) },
         "-",
-        { label: "Characters…", run: () => charactersPopup(p, r.left, r.bottom + 4) },
+        { label: tr("promos.board.picture.add.characters"), run: () => charactersPopup(p, r.left, r.bottom + 4) },
         "-",
-        { label: "Image from a file…", run: () => void addImage(p) },
-        { label: "Background overlay…", run: () => openTextureBrowser((tex) => void addOverlay(p, tex)) },
-        { label: "Ground", run: () => void addGround(p) },
+        { label: tr("promos.board.picture.add.image"), run: () => void addImage(p) },
+        { label: tr("promos.board.picture.add.overlay"), run: () => openTextureBrowser((tex) => void addOverlay(p, tex)) },
+        { label: tr("promos.common.ground"), run: () => void addGround(p) },
       ]);
     } }]);
     addRow.classList.add("promoLayerTools");
@@ -1791,7 +1792,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     try {
       l = await make();
     } catch (err) {
-      status.textContent = `Could not add it: ${String(err)}`;
+      status.textContent = tr("promos.board.picture.addFailed", { error: String(err) });
       return;
     }
     measureContent(l);
@@ -1804,12 +1805,12 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   }
   /** New characters in the middle of a picture, as tall as it: one alone, or a group in one scene (its look is changed in 3D). */
   function addCharacters(p: PromoPicture, chars: { cls: string; team: 0 | 1 }[]) {
-    status.textContent = chars.length > 1 ? "Taking the group shot…" : "Taking the character…";
+    status.textContent = chars.length > 1 ? tr("promos.board.characters.takingGroup") : tr("promos.board.characters.taking");
     const h = Math.round(p.h * 0.98);
     const w = Math.round(Math.min(p.w - 20, chars.length > 1 ? h * (0.42 * chars.length + 0.15) : h * 0.66));
     return addLayer(p, async () => {
       const l = await host.newShot(chars, (p.w - w) / 2, (p.h - h) / 2, w, h);
-      status.textContent = "Added. Edit in 3D (or right-click it) to dress, pose or change a class.";
+      status.textContent = tr("promos.board.characters.added");
       return l;
     });
   }
@@ -1834,12 +1835,12 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         const row = document.createElement("div");
         row.className = "row";
         const sel = document.createElement("select");
-        sel.setAttribute("aria-label", `Character ${i + 1}: class`);
+        sel.setAttribute("aria-label", tr("promos.board.characters.classAria", { n: i + 1 }));
         for (const k of classes) sel.add(new Option(k.label, k.cls, false, k.cls === c.cls));
         sel.onchange = () => { c.cls = sel.value; };
         const seg = document.createElement("div");
         seg.className = "seg";
-        for (const [t, label] of [[0, "RED"], [1, "BLU"]] as const) {
+        for (const [t, label] of [[0, tr("promos.common.red")], [1, "BLU"]] as const) {
           const b = document.createElement("button");
           b.type = "button";
           b.textContent = label;
@@ -1850,7 +1851,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         const del = document.createElement("button");
         del.type = "button";
         del.className = "del";
-        del.title = "Take this one out";
+        del.title = tr("promos.board.characters.remove");
         del.innerHTML = icon("x");
         del.disabled = rows.length < 2;
         del.onclick = () => { rows.splice(i, 1); render(); };
@@ -1860,16 +1861,16 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       const more = document.createElement("button");
       more.type = "button";
       more.className = "more";
-      more.textContent = "+ Another character";
+      more.textContent = tr("promos.board.characters.another");
       more.disabled = rows.length >= 4;
       more.onclick = () => { const last = rows.at(-1)!; rows.push({ cls: last.cls, team: last.team }); render(); };
       const hint = document.createElement("p");
       hint.className = "dim hint";
-      hint.textContent = rows.length > 1 ? `${rows.length} characters together in one scene (a group shot).` : "One character alone. Add more to put them together in one scene.";
+      hint.textContent = rows.length > 1 ? tr("promos.board.characters.groupHint", { count: rows.length }) : tr("promos.board.characters.aloneHint");
       const go = document.createElement("button");
       go.type = "button";
       go.className = "primary";
-      go.textContent = "Add";
+      go.textContent = tr("promos.common.add");
       go.onclick = () => { lastChars = rows.map((c) => ({ ...c })); close(); void addCharacters(p, rows); };
       pop.append(list, more, hint, go);
     };
@@ -1893,19 +1894,19 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
     const search = document.createElement("input");
     search.type = "search";
-    search.placeholder = "Search cosmetics…";
-    search.setAttribute("aria-label", "Search cosmetics");
+    search.placeholder = tr("promos.board.chartPopup.search");
+    search.setAttribute("aria-label", tr("promos.board.chartPopup.searchAria"));
     const list = document.createElement("div");
     list.className = "chartList";
     list.setAttribute("role", "listbox");
-    list.innerHTML = `<p class="dim hint">Reading…</p>`;
+    list.innerHTML = `<p class="dim hint">${trHtml("promos.common.reading")}</p>`;
     const styleSel = document.createElement("select");
-    styleSel.setAttribute("aria-label", "Style");
+    styleSel.setAttribute("aria-label", tr("promos.common.style"));
     styleSel.hidden = true;
     const go = document.createElement("button");
     go.type = "button";
     go.className = "primary";
-    go.textContent = "Make the paint chart";
+    go.textContent = tr("promos.board.chartPopup.make");
     go.disabled = true;
     let items: { scene: ChartItem[]; workshop: ChartItem[] } = { scene: [], workshop: [] };
     let chosen: ChartItem | null = null;
@@ -1924,7 +1925,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         const h = document.createElement("h4");
         h.textContent = title;
         list.append(h);
-        if (!shown.length) { const p = document.createElement("p"); p.className = "dim hint"; p.textContent = q ? "Nothing matches." : none; list.append(p); return; }
+        if (!shown.length) { const p = document.createElement("p"); p.className = "dim hint"; p.textContent = q ? tr("promos.board.chartPopup.noMatch") : none; list.append(p); return; }
         for (const it of shown.slice(0, 300)) {
           const b = document.createElement("button");
           b.type = "button";
@@ -1938,8 +1939,8 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
           list.append(b);
         }
       };
-      section("In your scenes", items.scene, "Nothing paintable is worn in the open scenes.");
-      section("Workshop", items.workshop, "No paintable workshop cosmetics (tf/workshop/import_source).");
+      section(tr("promos.board.chartPopup.inScenes"), items.scene, tr("promos.board.chartPopup.noneInScenes"));
+      section(tr("promos.board.chartPopup.workshop"), items.workshop, tr("promos.board.chartPopup.noneInWorkshop"));
     };
     search.oninput = show;
     go.onclick = () => { if (!chosen) return; const it = chosen, style = styleSel.hidden ? 0 : Number(styleSel.value); close(); void addChartPage(it, style); };
@@ -1953,7 +1954,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   /** A new page of a paint chart of an item (after the page shown), shown once taken. */
   async function addChartPage(it: ChartItem, style: number) {
     const after = picked;
-    status.textContent = `Taking the paint chart of ${it.name}…`;
+    status.textContent = tr("promos.board.chartPopup.taking", { item: it.name });
     try {
       const made = await host.newChart(it.id, style);
       const base = `${it.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "item"}_paints`;
@@ -1967,19 +1968,19 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       host.changed();
       thumbs.get(p)?.parentElement?.scrollIntoView({ block: "nearest", inline: "nearest" });
     } catch (err) {
-      status.textContent = `Could not make the paint chart: ${String(err)}`;
+      status.textContent = tr("promos.board.chartPopup.failed", { error: String(err) });
     }
   }
   /** A background overlay: a game texture tiled over the whole picture, faint, under everything but the backdrop. */
   async function addOverlay(p: PromoPicture, texture: string) {
-    status.textContent = "Reading the texture…";
+    status.textContent = tr("promos.board.overlay.reading");
     const was = snapshot();
     const spec: OverlaySpec = { texture, tile: 1, grey: true };
     let l: PromoLayer;
     try {
-      l = { ...layer(texture.split("/").pop() || "Overlay", await overlayImage(spec, p.w, p.h), 0, 0, p.w, p.h), overlay: spec, opacity: 0.35, blend: "overlay" };
+      l = { ...layer(texture.split("/").pop() || tr("promos.common.overlay"), await overlayImage(spec, p.w, p.h), 0, 0, p.w, p.h), overlay: spec, opacity: 0.35, blend: "overlay" };
     } catch (err) {
-      status.textContent = `Could not read the texture: ${String(err)}`;
+      status.textContent = tr("promos.board.overlay.readFailed", { error: String(err) });
       return;
     }
     l.opaque = { x0: 0, y0: 0, x1: l.image.width, y1: l.image.height };
@@ -1999,7 +2000,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   async function addGround(p: PromoPicture) {
     const was = snapshot();
     const spec: OverlaySpec = { texture: "", tile: 1, grey: true, ground: { ...DEFAULT_GROUND_SPEC } };
-    const l: PromoLayer = { ...layer("Ground", await overlayImage(spec, p.w, p.h), 0, 0, p.w, p.h), overlay: spec, blend: "multiply" };
+    const l: PromoLayer = { ...layer(tr("promos.common.ground"), await overlayImage(spec, p.w, p.h), 0, 0, p.w, p.h), overlay: spec, blend: "multiply" };
     l.opaque = { x0: 0, y0: 0, x1: l.image.width, y1: l.image.height };
     let at = 0;
     while (at < p.layers.length && p.layers[at].overlay && !p.layers[at].overlay!.ground) at++;
@@ -2027,39 +2028,39 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   /** The settings of a background overlay: its texture, its tiles, how it is laid over the backdrop. */
   function overlayFields(p: PromoPicture, l: PromoLayer, o: OverlaySpec) {
     if (o.ground) return groundFields(p, l, o, o.ground);
-    heading(layerBox, "Texture", o.texture, [{ label: "Change…", title: "Another texture from the game", run: () => openTextureBrowser((tex) => { o.texture = tex; l.name = tex.split("/").pop() || l.name; void retile(p, l).then(() => { host.changed(); showInspector(); }); }, o.texture) }]);
-    field(layerBox, "Tile size", range(0.1, 4, 0.05, o.tile, (v) => { o.tile = v; void retile(p, l); }, (v) => `${v.toFixed(2)}×`), "How large the texture's tiles are (1: as the game has them)");
-    field(layerBox, "Rotation", range(-180, 180, 1, o.rot ?? 0, (v) => { o.rot = v || undefined; void retile(p, l); }, (v) => `${v}°`), "How far the texture is turned");
-    check(layerBox, "Grey", o.grey, (v) => { o.grey = v; void retile(p, l); }, "Without its colours: only its light and shade show over the backdrop");
+    heading(layerBox, tr("promos.board.overlay.texture"), o.texture, [{ label: tr("promos.common.change"), title: tr("promos.board.overlay.anotherTexture"), run: () => openTextureBrowser((tex) => { o.texture = tex; l.name = tex.split("/").pop() || l.name; void retile(p, l).then(() => { host.changed(); showInspector(); }); }, o.texture) }]);
+    field(layerBox, tr("promos.board.overlay.tileSize.label"), range(0.1, 4, 0.05, o.tile, (v) => { o.tile = v; void retile(p, l); }, (v) => `${v.toFixed(2)}×`), tr("promos.board.overlay.tileSize.title"));
+    field(layerBox, tr("promos.common.rotation"), range(-180, 180, 1, o.rot ?? 0, (v) => { o.rot = v || undefined; void retile(p, l); }, (v) => `${v}°`), tr("promos.board.overlay.rotation.title"));
+    check(layerBox, tr("promos.board.overlay.grey.label"), o.grey, (v) => { o.grey = v; void retile(p, l); }, tr("promos.board.overlay.grey.title"));
     blendFields(p, l);
   }
   /** The settings of a ground: its size and look, then its texture (none at first: one is picked from the game's). */
   function groundFields(p: PromoPicture, l: PromoLayer, o: OverlaySpec, g: GroundSpec) {
     const again = () => void retile(p, l);
-    field(layerBox, "Width", range(0.1, 4, 0.01, g.width, (v) => { g.width = v; again(); }, (v) => `${Math.round(v * 100)}%`), "How wide it is, of the picture's width (the wheel over the board sizes it too)");
-    field(layerBox, "Depth", range(0.05, 1, 0.01, g.depth, (v) => { g.depth = v; again(); }), "How deep it is for its width: low for a floor seen from the side, high for one seen from above");
-    field(layerBox, "Softness", range(0, 1, 0.01, g.softness, (v) => { g.softness = v; again(); }), "How much of it fades out towards its edge (0: a hard edge)");
-    field(layerBox, "Colour", colour(g.color, (v) => { g.color = v; again(); }), "Its colour (with Multiply, it shades the backdrop: white leaves it as it is)");
+    field(layerBox, tr("promos.common.width"), range(0.1, 4, 0.01, g.width, (v) => { g.width = v; again(); }, (v) => `${Math.round(v * 100)}%`), tr("promos.board.ground.width.title"));
+    field(layerBox, tr("promos.board.ground.depth.label"), range(0.05, 1, 0.01, g.depth, (v) => { g.depth = v; again(); }), tr("promos.board.ground.depth.title"));
+    field(layerBox, tr("promos.common.softness"), range(0, 1, 0.01, g.softness, (v) => { g.softness = v; again(); }), tr("promos.board.ground.softness.title"));
+    field(layerBox, tr("promos.common.colour"), colour(g.color, (v) => { g.color = v; again(); }), tr("promos.board.ground.colour.title"));
     blendFields(p, l);
-    heading(layerBox, "Texture", o.texture || "No texture on it", o.texture
-      ? [{ label: "Change…", title: "Another texture from the game", run: () => openTextureBrowser((tex) => { o.texture = tex; void retile(p, l).then(() => { host.changed(); showInspector(); }); }, o.texture) },
-         { label: "Remove", title: "The ground without a texture", run: () => { o.texture = ""; void retile(p, l).then(() => { host.changed(); showInspector(); }); } }]
-      : [{ label: "Add…", title: "Lay a texture from the game on the ground", run: () => openTextureBrowser((tex) => { o.texture = tex; void retile(p, l).then(() => { host.changed(); showInspector(); }); }) }]);
+    heading(layerBox, tr("promos.board.overlay.texture"), o.texture || tr("promos.board.ground.noTexture"), o.texture
+      ? [{ label: tr("promos.common.change"), title: tr("promos.board.overlay.anotherTexture"), run: () => openTextureBrowser((tex) => { o.texture = tex; void retile(p, l).then(() => { host.changed(); showInspector(); }); }, o.texture) },
+         { label: tr("promos.common.remove"), title: tr("promos.board.ground.removeTexture"), run: () => { o.texture = ""; void retile(p, l).then(() => { host.changed(); showInspector(); }); } }]
+      : [{ label: tr("promos.common.addMore"), title: tr("promos.board.ground.addTexture"), run: () => openTextureBrowser((tex) => { o.texture = tex; void retile(p, l).then(() => { host.changed(); showInspector(); }); }) }]);
     if (!o.texture) return;
-    field(layerBox, "Strength", range(0, 1, 0.01, g.texStrength, (v) => { g.texStrength = v; again(); }), "How strongly the texture shows over the ground's colour");
-    field(layerBox, "Tile size", range(0.1, 4, 0.05, o.tile, (v) => { o.tile = v; again(); }, (v) => `${v.toFixed(2)}×`), "How large the texture's tiles are (1: as the game has them)");
-    field(layerBox, "Rotation", range(-180, 180, 1, o.rot ?? 0, (v) => { o.rot = v || undefined; again(); }, (v) => `${v}°`), "How far the texture is turned on the floor");
-    check(layerBox, "Grey", o.grey, (v) => { o.grey = v; again(); }, "Without its colours: only its light and shade");
+    field(layerBox, tr("promos.common.strength"), range(0, 1, 0.01, g.texStrength, (v) => { g.texStrength = v; again(); }), tr("promos.board.ground.strength.title"));
+    field(layerBox, tr("promos.board.overlay.tileSize.label"), range(0.1, 4, 0.05, o.tile, (v) => { o.tile = v; again(); }, (v) => `${v.toFixed(2)}×`), tr("promos.board.overlay.tileSize.title"));
+    field(layerBox, tr("promos.common.rotation"), range(-180, 180, 1, o.rot ?? 0, (v) => { o.rot = v || undefined; again(); }, (v) => `${v}°`), tr("promos.board.ground.rotation.title"));
+    check(layerBox, tr("promos.board.overlay.grey.label"), o.grey, (v) => { o.grey = v; again(); }, tr("promos.board.ground.grey.title"));
   }
   /** How a layer is laid over what is under it: how much of it shows, and its blend. */
   function blendFields(p: PromoPicture, l: PromoLayer) {
-    field(layerBox, "Opacity", range(0, 1, 0.01, l.opacity ?? 1, (v) => { l.opacity = v >= 1 ? undefined : v; draw(p); placeShared(l); }), "How much of it shows");
+    field(layerBox, tr("promos.common.opacity"), range(0, 1, 0.01, l.opacity ?? 1, (v) => { l.opacity = v >= 1 ? undefined : v; draw(p); placeShared(l); }), tr("promos.board.layer.opacity.title"));
     const blend = document.createElement("select");
     for (const [value, label] of LAYER_BLENDS) blend.add(new Option(label, value));
     blend.value = l.blend ?? "source-over";
     blend.onchange = () => { l.blend = blend.value === "source-over" ? undefined : (blend.value as LayerBlend); draw(p); placeShared(l); };
     wheelSelect(blend);
-    field(layerBox, "Blend", blend, "How it is laid over what is under it (as Photoshop's blend modes)");
+    field(layerBox, tr("promos.common.blend"), blend, tr("promos.board.layer.blend.title"));
   }
 
   /** An image from a file, fitted in the middle of a picture. */
@@ -2080,7 +2081,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         // fitted in 80% of the picture (no larger than it is)
         const k = Math.min(1, (p.w * 0.8) / c.width, (p.h * 0.8) / c.height);
         const w = c.width * k, h = c.height * k;
-        return layer(file.name.replace(/\.[^.]+$/, "") || "Image", c, (p.w - w) / 2, (p.h - h) / 2, w, h);
+        return layer(file.name.replace(/\.[^.]+$/, "") || tr("promos.common.image"), c, (p.w - w) / 2, (p.h - h) / 2, w, h);
       });
     };
     input.click();
@@ -2109,7 +2110,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     let steady = false;
     const hint = document.createElement("p");
     hint.className = "dim hint";
-    hint.textContent = l.chart ? "Drag to turn · right-drag to slide · Ctrl-drag to turn the light · wheel to zoom" : "Drag to turn · right-drag to slide · Ctrl-drag to turn the light";
+    hint.textContent = l.chart ? tr("promos.board.camera.hintChart") : tr("promos.board.camera.hint");
     box.append(canvas, hint);
     const ctx = canvas.getContext("2d")!;
     let busy = false, again = false;
@@ -2131,7 +2132,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
           ctx.strokeRect(vx + 0.5, vy + 0.5, vw - 1, vh - 1);
         } while (again);
       } catch (err) {
-        status.textContent = `Could not look through the camera: ${String(err)}`;
+        status.textContent = tr("promos.board.camera.peekFailed", { error: String(err) });
       } finally {
         busy = false;
       }
@@ -2200,15 +2201,15 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
 
   /** A text layer's controls: what it says, its font and look; it is drawn again as they change (its middle stays put). */
   function textFields(p: PromoPicture, l: PromoLayer, t: NonNullable<PromoLayer["text"]>) {
-    // (under the layer's heading, "Text": with more texts selected, it says how many)
+    // (under the layer's heading, tr("promos.common.text"): with more texts selected, it says how many)
     const th = layerBox.querySelector("h3") as HTMLElement;
     // the texts selected with it change together (all but what each says)
     const together = selection.filter((x) => x.text && p.layers.includes(x));
     const targets = together.includes(l) ? together : [l];
-    if (targets.length > 1) { th.textContent = `Text · ${targets.length} selected`; th.title = "Their look changes together (each keeps what it says)"; }
+    if (targets.length > 1) { th.textContent = tr("promos.board.text.selected", { count: targets.length }); th.title = tr("promos.board.text.together"); }
     let redraws = Promise.resolve();
     const redraw = (x: PromoLayer, q: PromoPicture) => {
-      x.name = x.text!.text.split("\n")[0] || "Text";
+      x.name = x.text!.text.split("\n")[0] || tr("promos.common.text");
       redraws = redraws.then(() => refreshText(x)).then(() => { measureContent(x); draw(q); });
     };
     const changed = () => { for (const x of targets) redraw(x, p); };
@@ -2219,28 +2220,28 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     area.value = t.text;
     area.rows = 2;
     area.oninput = () => { t.text = area.value; changed(); };
-    field(layerBox, "Says", area);
+    field(layerBox, tr("promos.board.text.says"), area);
     const font = document.createElement("select");
     for (const [path, label] of TEXT_FONTS) font.add(new Option(label, path));
     font.value = t.font;
     font.onchange = () => { setAll((x) => (x.font = font.value)); changed(); };
-    field(layerBox, "Font", font);
+    field(layerBox, tr("promos.board.text.font"), font);
     const weight = document.createElement("select");
-    for (const [w, label] of [[400, "Regular"], [600, "Semibold"], [800, "Bold"]] as const) weight.add(new Option(label, String(w)));
+    for (const [w, label] of [[400, tr("promos.board.text.regular")], [600, tr("promos.board.text.semibold")], [800, tr("promos.board.text.bold")]] as const) weight.add(new Option(label, String(w)));
     weight.value = String(t.weight);
     weight.onchange = () => { setAll((x) => (x.weight = Number(weight.value))); changed(); };
-    field(layerBox, "Weight", weight);
-    field(layerBox, "Font size", range(12, 300, 1, t.size, (v) => { setAll((x) => (x.size = v)); changed(); }));
-    field(layerBox, "Colour", colour(t.color.slice(0, 7), (v) => { setAll((x) => (x.color = v)); changed(); }));
+    field(layerBox, tr("promos.board.text.weight"), weight);
+    field(layerBox, tr("promos.board.text.size"), range(12, 300, 1, t.size, (v) => { setAll((x) => (x.size = v)); changed(); }));
+    field(layerBox, tr("promos.common.colour"), colour(t.color.slice(0, 7), (v) => { setAll((x) => (x.color = v)); changed(); }));
     const align = document.createElement("select");
-    for (const [a, label] of [["left", "Left"], ["center", "Centre"], ["right", "Right"]] as const) align.add(new Option(label, a));
+    for (const [a, label] of [["left", tr("promos.common.left")], ["center", tr("promos.common.centre")], ["right", tr("promos.common.right")]] as const) align.add(new Option(label, a));
     align.value = t.align;
     align.onchange = () => { setAll((x) => (x.align = align.value as typeof t.align)); changed(); };
-    field(layerBox, "Lines", align);
-    check(layerBox, "Outline", t.outline, (v) => { setAll((x) => (x.outline = v)); changed(); });
-    check(layerBox, "Shadow", t.shadow, (v) => { setAll((x) => (x.shadow = v)); changed(); });
+    field(layerBox, tr("promos.board.text.lines"), align);
+    check(layerBox, tr("promos.board.text.outline"), t.outline, (v) => { setAll((x) => (x.outline = v)); changed(); });
+    check(layerBox, tr("promos.common.shadow"), t.shadow, (v) => { setAll((x) => (x.shadow = v)); changed(); });
     // the same look on every text of the board (what each says stays)
-    buttons(layerBox, [{ label: "Apply to every text", title: "Give every text of every picture this font, weight, size, colour, outline and shadow", run: () => {
+    buttons(layerBox, [{ label: tr("promos.board.text.applyAll.label"), title: tr("promos.board.text.applyAll.title"), run: () => {
       const was = snapshot();
       for (const q of pictures) for (const x of q.layers) {
         if (!x.text || x === l) continue;
@@ -2248,7 +2249,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         redraw(x, q);
       }
       void redraws.then(() => pushUndo(was));
-      status.textContent = "Every text has this look now.";
+      status.textContent = tr("promos.board.text.applied");
     } }]);
   }
 
@@ -2263,12 +2264,12 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   /** What was copied (Ctrl+C): the layers themselves, to be put into a picture as copies of their own (Ctrl+V) or linked (Ctrl+Shift+V). */
   let clipboard: PromoLayer[] = [];
   const picks = () => (picked ? selection.filter((l) => picked!.layers.includes(l)) : []);
-  const some = (ls: PromoLayer[]) => (ls.length === 1 ? `“${ls[0].name}”` : `${ls.length} layers`);
+  const some = (ls: PromoLayer[]) => (ls.length === 1 ? tr("promos.board.layers.one", { name: ls[0].name }) : tr("promos.board.layers.many", { count: ls.length }));
   function copyLayers() {
     const sel = picks();
     if (!sel.length) return;
     clipboard = [...sel];
-    status.textContent = `Copied ${some(sel)}. Ctrl+V in a picture puts it there as a copy of its own; Ctrl+Shift+V linked (the same shot and place).`;
+    status.textContent = tr("promos.board.paste.copiedToClipboard", { what: some(sel) });
   }
   /** Puts the copied layers into the picked picture: linked with what they were copied from, or as copies of their own. */
   function pasteLayers(how: "instance" | "copy", from = clipboard) {
@@ -2302,7 +2303,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     selection = added;
     draw(p);
     showInspector();
-    status.textContent = `${how === "instance" && !added.every((l) => l.shared === undefined) ? "Linked" : "Copied"} ${some(added)} into this picture.`;
+    status.textContent = tr(how === "instance" && !added.every((l) => l.shared === undefined) ? "promos.board.paste.linked" : "promos.board.paste.copied", { what: some(added) });
   }
   function deleteLayers() {
     const p = picked;
@@ -2317,7 +2318,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     selectOnly(null);
     draw(p);
     showInspector();
-    status.textContent = `Took ${some(sel)} out of this picture${sel.some((l) => l.shared) ? " (the other pictures keep theirs)" : ""}.`;
+    status.textContent = tr(sel.some((l) => l.shared) ? "promos.board.paste.tookOutShared" : "promos.board.paste.tookOut", { what: some(sel) });
   }
   /** Opens a shot's character in the 3D view (see BoardHost.editIn3D); the shot is taken again when it is set from there. */
   async function editIn3D(p: PromoPicture, l: PromoLayer) {
@@ -2338,7 +2339,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         retake(p, l);
       }
     } catch (err) {
-      status.textContent = `Could not open it in 3D: ${String(err)}`;
+      status.textContent = tr("promos.board.layer.editFailed", { error: String(err) });
     }
   }
 
@@ -2382,21 +2383,21 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const others = l.link ? pictures.flatMap((q) => q.layers).filter((x) => x !== l && x.link === l.link) : [];
     const spec = l.shot;
     showContextMenu(x, y, [
-      ...(spec ? [{ label: "Edit in 3D…", run: () => void editIn3D(p, l) }] : []),
-      ...(spec?.randomPose ? [{ label: spec.group ? "New poses" : "New pose", run: () => retake(p, l, () => host.repose(spec)) }] : []),
-      ...(spec?.reroll ? [{ label: spec.group ? "New outfits" : "New outfit", run: () => retake(p, l, () => host.reroll(spec)) }] : []),
+      ...(spec ? [{ label: tr("promos.board.layer.editIn3d.label"), run: () => void editIn3D(p, l) }] : []),
+      ...(spec?.randomPose ? [{ label: spec.group ? tr("promos.board.layer.newPoses") : tr("promos.board.layer.newPose"), run: () => retake(p, l, () => host.repose(spec)) }] : []),
+      ...(spec?.reroll ? [{ label: spec.group ? tr("promos.board.layer.newOutfits") : tr("promos.board.layer.newOutfit"), run: () => retake(p, l, () => host.reroll(spec)) }] : []),
       "-",
-      { label: l.hidden ? "Show" : "Hide", run: () => { l.hidden = !l.hidden; draw(p); placeShared(l); showInspector(); } },
-      ...(l.chart ? [] : [{ label: "Put it back where it was", run: () => { l.scale = 1; l.dx = 0; l.dy = 0; l.rotation = 0; draw(p); placeShared(l); showLayer(); } }]),
-      { label: "Bring to front", run: () => restack(p, l, true), disabled: p.layers.at(-1) === l },
-      { label: "Send to back", run: () => restack(p, l, false), disabled: p.layers[0] === l },
+      { label: l.hidden ? tr("promos.common.show") : tr("promos.common.hide"), run: () => { l.hidden = !l.hidden; draw(p); placeShared(l); showInspector(); } },
+      ...(l.chart ? [] : [{ label: tr("promos.board.layer.putBack"), run: () => { l.scale = 1; l.dx = 0; l.dy = 0; l.rotation = 0; draw(p); placeShared(l); showLayer(); } }]),
+      { label: tr("promos.board.layer.toFront"), run: () => restack(p, l, true), disabled: p.layers.at(-1) === l },
+      { label: tr("promos.board.layer.toBack"), run: () => restack(p, l, false), disabled: p.layers[0] === l },
       "-",
-      { label: "Copy", run: () => { selectOnly(l); copyLayers(); } },
-      { label: "Duplicate", run: () => pasteLayers("copy", [l]) },
-      ...(linked ? [{ label: `Make this picture's own copy (linked in ${linked} other${linked === 1 ? "" : "s"})`, run: () => unlinkLayer(p, l) }]
-        : others.length ? [{ label: "Link back to the others", run: () => relinkLayer(p, l) }] : []),
+      { label: tr("promos.common.copy"), run: () => { selectOnly(l); copyLayers(); } },
+      { label: tr("promos.common.duplicate"), run: () => pasteLayers("copy", [l]) },
+      ...(linked ? [{ label: tr("promos.board.layer.unlinkMenu", { count: linked }), run: () => unlinkLayer(p, l) }]
+        : others.length ? [{ label: tr("promos.board.layer.relinkMenu"), run: () => relinkLayer(p, l) }] : []),
       "-",
-      { label: "Delete", run: () => { selectOnly(l); deleteLayers(); } },
+      { label: tr("promos.common.delete"), run: () => { selectOnly(l); deleteLayers(); } },
     ]);
   }
 
@@ -2406,12 +2407,12 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     linkNote.textContent = "";
     const linked = l ? linkedWith(l) : [];
     const others = l?.link ? pictures.flatMap((q) => q.layers).filter((x) => x !== l && x.link === l.link) : [];
-    if (linked.length) linkNote.textContent = `Linked: the same shot and place in ${linked.length} other picture${linked.length === 1 ? "" : "s"}. A change here changes it there too.`;
-    else if (others.length) linkNote.textContent = `A copy of its own; ${others.length} other picture${others.length === 1 ? " has" : "s have"} the shot it was copied from.`;
+    if (linked.length) linkNote.textContent = tr("promos.board.layer.linkedNote", { count: linked.length });
+    else if (others.length) linkNote.textContent = tr("promos.board.layer.copyNote", { count: others.length });
     const add = (label: string, title: string, run: () => void, iconName?: Parameters<typeof icon>[0]) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.title = l ? title : "Select a layer first";
+      b.title = l ? title : tr("promos.board.layer.selectFirst");
       if (iconName) { b.innerHTML = icon(iconName); b.className = "iconBtn"; b.setAttribute("aria-label", label); }
       else b.textContent = label;
       b.disabled = !l || !p;
@@ -2421,11 +2422,11 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const sep = document.createElement("span");
     sep.className = "sep";
     actionsBox.append(sep);
-    add("Copy", "Copy it (Ctrl+C): Ctrl+V in a picture puts it there as a copy of its own, Ctrl+Shift+V linked", () => { if (l) { selectOnly(l); copyLayers(); } });
-    add("Duplicate", "A copy of its own in this picture, beside it", () => { if (l) pasteLayers("copy", [l]); });
-    if (l && p && linked.length) add("Unlink", "Make this picture's own copy: it keeps a copy of the shot, changed on its own from now on", () => unlinkLayer(p, l));
-    else if (l && p && others.length) add("Link back", "Link it to the others again: it takes their shot and place, and changes with them", () => relinkLayer(p, l));
-    add("Delete", "Take it out of this picture (Delete)", () => { if (l) { selectOnly(l); deleteLayers(); } }, "trash2");
+    add(tr("promos.common.copy"), tr("promos.board.layer.copy.title"), () => { if (l) { selectOnly(l); copyLayers(); } });
+    add(tr("promos.common.duplicate"), tr("promos.board.layer.duplicate.title"), () => { if (l) pasteLayers("copy", [l]); });
+    if (l && p && linked.length) add(tr("promos.board.layer.unlink.label"), tr("promos.board.layer.unlink.title"), () => unlinkLayer(p, l));
+    else if (l && p && others.length) add(tr("promos.board.layer.relink.label"), tr("promos.board.layer.relink.title"), () => relinkLayer(p, l));
+    add(tr("promos.common.delete"), tr("promos.board.layer.delete.title"), () => { if (l) { selectOnly(l); deleteLayers(); } }, "trash2");
   }
 
   /** Every thumbnail's shot layer, with its picture. */
@@ -2478,30 +2479,30 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       again();
       showLayer();
     };
-    const h = heading(layerBox, "Studio light");
+    const h = heading(layerBox, tr("promos.board.studio.header"));
     const reset = document.createElement("button");
-    reset.textContent = "Reset";
-    reset.title = "The classic rig again: a warm key high on the right, a cool fill low on the left, a rim behind";
+    reset.textContent = tr("promos.common.reset");
+    reset.title = tr("promos.board.studio.reset.title");
     reset.onclick = () => replace({ ...structuredClone(DEFAULT_STUDIO), on: st.on });
     const shuffle = document.createElement("button");
-    shuffle.textContent = "Randomize";
-    shuffle.title = "Another three-point setup: the key on one side and above, the fill on the other and dimmer, the rim behind, in colours that go together";
+    shuffle.textContent = tr("promos.board.studio.randomize.label");
+    shuffle.title = tr("promos.board.studio.randomize.title");
     shuffle.onclick = () => replace({ ...randomStudio(), on: true, ao: st.ao, aoStrength: st.aoStrength });
     const tools = document.createElement("span");
     tools.className = "promoHeadBtns";
     const flip = document.createElement("button");
-    flip.textContent = "Flip";
-    flip.title = "Mirror the rig left to right: the key, the fill and the rim each to the other side (the pivot too)";
+    flip.textContent = tr("promos.board.studio.flip.label");
+    flip.title = tr("promos.board.studio.flip.title");
     flip.onclick = () => replace(flipStudio(st));
     tools.append(flip, shuffle, reset);
     h.appendChild(tools);
-    check(layerBox, "Three-point light", st.on, (v) => { st.on = v; again(); showLayer(); }, "Light the thumbnail with a studio rig of three lights (key, fill, rim) in place of the scene's light");
-    check(layerBox, "Own light setup", own, (v) => {
+    check(layerBox, tr("promos.board.studio.on.label"), st.on, (v) => { st.on = v; again(); showLayer(); }, tr("promos.board.studio.on.title"));
+    check(layerBox, tr("promos.board.studio.own.label"), own, (v) => {
       spec.studioOwn = v || undefined;
       // (linked again: it takes the board's rig; unlinked: it keeps a copy of it, changed on its own from now on)
       if (!v) { spec.studio = structuredClone(look.studio); retake(p, l); }
       showLayer();
-    }, "Off: the same studio light as every other thumbnail of the set (a change here changes them all) · On: this thumbnail's own");
+    }, tr("promos.board.studio.own.title"));
     if (!st.on) { studioMoved = null; return; }
     // the pivot: the ball, and its two angles as sliders (kept in step with each other)
     // (each step of a drag takes the shot again: the newest wins, as with the camera's sliders)
@@ -2510,32 +2511,32 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     box.className = "promoStudio";
     const hint = document.createElement("p");
     hint.className = "dim hint";
-    hint.textContent = "Drag the ball: all three lights · drag K, F, R: one light · Ctrl-drag in the camera window: the pivot";
+    hint.textContent = tr("promos.board.studio.hint");
     box.append(sphere.element, hint);
     layerBox.appendChild(box);
     const lit = () => { sphere.draw(); again(); };
     const round = range(-180, 180, 1, st.yaw, (v) => { st.yaw = v; lit(); }, (v) => `${v}°`);
     const over = range(-80, 80, 1, st.pitch, (v) => { st.pitch = v; lit(); }, (v) => `${v}°`);
-    field(layerBox, "Pivot round", round, "Turns the three lights together round the subject");
-    field(layerBox, "Pivot over", over, "Turns the three lights together over the subject");
+    field(layerBox, tr("promos.board.studio.pivotRound.label"), round, tr("promos.board.studio.pivotRound.title"));
+    field(layerBox, tr("promos.board.studio.pivotOver.label"), over, tr("promos.board.studio.pivotOver.title"));
     studioMoved = () => { sphere.draw(); setSlider(round, st.yaw); setSlider(over, st.pitch); };
-    field(layerBox, "Brightness", range(0, 3, 0.01, st.brightness, (v) => { st.brightness = v; lit(); }), "All three lights at once");
+    field(layerBox, tr("promos.board.studio.brightness.label"), range(0, 3, 0.01, st.brightness, (v) => { st.brightness = v; lit(); }), tr("promos.board.studio.brightness.title"));
     for (const role of STUDIO_ROLES) {
       const lamp = st[role];
-      field(layerBox, STUDIO_LABELS[role], range(0, 4, 0.01, lamp.intensity, (v) => { lamp.intensity = v; lit(); }), `How bright the ${STUDIO_LABELS[role].toLowerCase()} light is`);
+      field(layerBox, tr("promos.board.studio.role.label", { role }), range(0, 4, 0.01, lamp.intensity, (v) => { lamp.intensity = v; lit(); }), tr("promos.board.studio.role.brightness", { role }));
     }
     // the three colours in one row
     const swatches = document.createElement("div");
     swatches.className = "promoSwatches";
     for (const role of STUDIO_ROLES) {
       const c = colour(st[role].color, (v) => { st[role].color = v; lit(); });
-      c.title = `The ${STUDIO_LABELS[role].toLowerCase()} light's colour`;
+      c.title = tr("promos.board.studio.role.colour", { role });
       swatches.appendChild(c);
     }
-    field(layerBox, "Key · fill · rim", swatches, "The colours of the key, the fill and the rim");
-    field(layerBox, "Ambient", range(0, 1, 0.01, st.ambient, (v) => { st.ambient = v; lit(); }), "The light from everywhere under the rig: low lets the rig shape the subject");
-    check(layerBox, "Ambient occlusion", st.ao, (v) => { st.ao = v; again(); showLayer(); }, "Darkens the creases and where parts meet, as a close shot shows them");
-    if (st.ao) field(layerBox, "AO strength", range(0, 1, 0.01, st.aoStrength, (v) => { st.aoStrength = v; again(); }));
+    field(layerBox, tr("promos.board.studio.colours.label"), swatches, tr("promos.board.studio.colours.title"));
+    field(layerBox, tr("promos.board.studio.ambient.label"), range(0, 1, 0.01, st.ambient, (v) => { st.ambient = v; lit(); }), tr("promos.board.studio.ambient.title"));
+    check(layerBox, tr("promos.board.studio.ao.label"), st.ao, (v) => { st.ao = v; again(); showLayer(); }, tr("promos.board.studio.ao.title"));
+    if (st.ao) field(layerBox, tr("promos.board.studio.aoStrength"), range(0, 1, 0.01, st.aoStrength, (v) => { st.aoStrength = v; again(); }));
     sphere.draw();
   }
 
@@ -2549,9 +2550,9 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   /** A shot's pose: the taunt or animation it is from (a list), and where in it (a timeline, the shot taken again as it is dragged). */
   function poseFields(p: PromoPicture, l: PromoLayer, spec: ShotSpec) {
     const list = document.createElement("select");
-    list.add(new Option("Loading the poses…", ""));
+    list.add(new Option(tr("promos.board.pose.loading"), ""));
     list.disabled = true;
-    field(layerBox, "Pose", list);
+    field(layerBox, tr("promos.common.pose"), list);
     const time = document.createElement("input");
     time.type = "range";
     time.className = "ui-range";
@@ -2560,14 +2561,14 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     time.step = "0.002";
     time.value = String(spec.poseOf?.at ?? 0);
     time.disabled = !spec.poseOf;
-    time.title = "Where in the taunt or animation the pose is taken";
+    time.title = tr("promos.board.pose.time.title");
     time.oninput = () => {
       if (!spec.poseOf) return;
       const id = spec.poseOf.id, at = Number(time.value);
       spec.poseOf.at = at;
       retake(p, l, () => host.setPose(spec, id, at));
     };
-    field(layerBox, "Timeline", time);
+    field(layerBox, tr("promos.board.pose.timeline"), time);
     void host.poses(spec).then(({ taunts, sequences }) => {
       list.innerHTML = "";
       if (!spec.poseOf) list.add(new Option("(its own: pick one)", ""));
@@ -2579,8 +2580,8 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         list.appendChild(g);
       };
       // the animations first: a weapon's stance is what a promo shot mostly wants, a taunt the odd one
-      group("Animations", sequences);
-      group("Taunts", taunts);
+      group(tr("promos.board.pose.animations"), sequences);
+      group(tr("promos.board.pose.taunts"), taunts);
       list.value = spec.poseOf?.id ?? "";
       list.disabled = false;
       list.onchange = () => {
@@ -2594,13 +2595,13 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
 
   /** A shot's bodygroups: each part of the class model that can switch, on or off (or which model) in this shot, over the cosmetics' choice. */
   function bodygroupFields(p: PromoPicture, l: PromoLayer, spec: ShotSpec) {
-    heading(layerBox, "Bodygroups");
+    heading(layerBox, tr("promos.board.bodygroups.header"));
     const box = document.createElement("div");
-    box.innerHTML = `<p class="dim hint">Loading…</p>`;
+    box.innerHTML = `<p class="dim hint">${trHtml("promos.common.loading")}</p>`;
     layerBox.appendChild(box);
     void host.bodygroups(spec).then((parts) => {
       box.innerHTML = "";
-      if (!parts.length) { box.innerHTML = `<p class="dim hint">This class has no bodygroups.</p>`; return; }
+      if (!parts.length) { box.innerHTML = `<p class="dim hint">${trHtml("promos.board.bodygroups.none")}</p>`; return; }
       const set = (name: string, v: number | null) => {
         const own = { ...spec.bodygroups };
         if (v === null) delete own[name];
@@ -2612,20 +2613,20 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       for (const bp of parts) {
         const mine = spec.bodygroups?.[bp.name];
         const now = mine ?? bp.byItems ?? 0;
-        const why = mine !== undefined ? "set by hand in this shot" : bp.byItems !== null ? "as a cosmetic it wears sets it" : "the default";
+        const why = mine !== undefined ? "hand" : bp.byItems !== null ? "item" : "default";
         const label = bp.name.replace(/_/g, " ");
         if (bp.count === 2) {
-          check(box, label + (mine !== undefined ? " •" : ""), now === 0, (on) => set(bp.name, on === ((bp.byItems ?? 0) === 0) ? null : on ? 0 : 1), `Shown or hidden (${why})`);
+          check(box, label + (mine !== undefined ? " •" : ""), now === 0, (on) => set(bp.name, on === ((bp.byItems ?? 0) === 0) ? null : on ? 0 : 1), tr("promos.board.bodygroups.shown", { why }));
         } else {
           const sel = document.createElement("select");
-          for (let i = 0; i < bp.count; i++) sel.add(new Option(i === 0 ? "0 (its own)" : String(i), String(i)));
+          for (let i = 0; i < bp.count; i++) sel.add(new Option(i === 0 ? tr("promos.board.bodygroups.ownModel") : String(i), String(i)));
           sel.value = String(now);
-          sel.title = `Which model it shows (${why})`;
+          sel.title = tr("promos.board.bodygroups.model", { why });
           sel.onchange = () => set(bp.name, Number(sel.value) === (bp.byItems ?? 0) ? null : Number(sel.value));
           field(box, label + (mine !== undefined ? " •" : ""), sel);
         }
       }
-      if (spec.bodygroups) buttons(box, [{ label: "Reset", title: "Back to what the cosmetics set (• marks a part set by hand)", run: () => { spec.bodygroups = undefined; retake(p, l); showLayer(); } }]);
+      if (spec.bodygroups) buttons(box, [{ label: tr("promos.common.reset"), title: tr("promos.board.bodygroups.reset.title"), run: () => { spec.bodygroups = undefined; retake(p, l); showLayer(); } }]);
     });
   }
 
@@ -2636,41 +2637,41 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     cameraSync = null;
     layerActions(p, p && l && p.layers.includes(l) ? l : null);
     if (p && borderPicked) {
-      heading(layerBox, "Border", "Every picture's: a line round it, inside its edge");
+      heading(layerBox, tr("promos.common.border"), tr("promos.board.border.note"));
       showLookStroke();
       layerBox.append(strokeBox);
       return;
     }
     if (!p || !l || !p.layers.includes(l)) {
-      if (p && p.layers.length > 1) layerBox.innerHTML = `<p class="dim">Click a shot in the picture to change it.</p>`;
+      if (p && p.layers.length > 1) layerBox.innerHTML = `<p class="dim">${trHtml("promos.board.inspector.pickShot")}</p>`;
       return;
     }
     const spec = l.shot;
-    heading(layerBox, l.chart ? "Paint chart" : l.text ? "Text" : l.name, undefined, spec
-      ? [{ label: "Edit in 3D…", primary: true, title: "Open this character in the 3D view as the shot has it: change its weapon, pose, cosmetics or anything else, then come back", run: () => editIn3D(p, l) }]
+    heading(layerBox, l.chart ? "Paint chart" : l.text ? tr("promos.common.text") : l.name, undefined, spec
+      ? [{ label: tr("promos.board.layer.editIn3d.label"), primary: true, title: tr("promos.board.layer.editIn3d.title"), run: () => editIn3D(p, l) }]
       : []);
     if (l.overlay) {
       overlayFields(p, l, l.overlay);
     } else if (!l.chart) {
       if (spec && p.kind === "Thumbnail") {
         const framing = document.createElement("select");
-        framing.add(new Option("On the character", "character"));
-        framing.add(new Option("Item alone", "item"));
+        framing.add(new Option(tr("promos.board.shot.framing.character"), "character"));
+        framing.add(new Option(tr("promos.board.shot.framing.item"), "item"));
         framing.value = spec.focus !== undefined ? "character" : "item";
         framing.onchange = () => { const mode = framing.value as "character" | "item"; retake(p, l, () => host.framing(spec, mode)); panelStale = true; };
-        field(layerBox, "Framing", framing, "On the character: the whole character, framed on the item, in a pose that shows it · Item alone: the item by itself, as the icons are");
+        field(layerBox, tr("promos.board.shot.framing.label"), framing, tr("promos.board.shot.framing.title"));
       }
       // the image as it is placed on the picture (the camera's framing is the Camera's): its scale and its turn, about its middle
-      heading(layerBox, "Image", undefined, [{ label: "Reset", title: "Put it back where it was: its scale, place and turn as it was taken", run: () => { l.scale = 1; l.dx = 0; l.dy = 0; l.rotation = 0; draw(p); placeShared(l); showLayer(); } }]);
+      heading(layerBox, tr("promos.common.image"), undefined, [{ label: tr("promos.common.reset"), title: tr("promos.board.shot.image.reset.title"), run: () => { l.scale = 1; l.dx = 0; l.dy = 0; l.rotation = 0; draw(p); placeShared(l); showLayer(); } }]);
       const size = range(0.2, 3, 0.01, l.scale, (v) => { const r = opaqueRect(l); sizeAbout(l, v, [r.x + r.w / 2, r.y + r.h / 2]); draw(p); placeShared(l); });
       size.onchange = () => sharpen(p, [l]);
-      field(layerBox, "Image scale", size, "How big the image is on the picture (it is taken again sharper when let go); the camera's Zoom frames the shot itself");
-      field(layerBox, "Image rotation", range(-180, 180, 1, l.rotation ?? 0, (v) => { l.rotation = v || undefined; draw(p); placeShared(l); }, (v) => `${v}°`), "How far the image is turned on the picture, about its middle");
+      field(layerBox, tr("promos.board.shot.image.scale.label"), size, tr("promos.board.shot.image.scale.title"));
+      field(layerBox, tr("promos.board.shot.image.rotation.label"), range(-180, 180, 1, l.rotation ?? 0, (v) => { l.rotation = v || undefined; draw(p); placeShared(l); }, (v) => `${v}°`), tr("promos.board.shot.image.rotation.title"));
       blendFields(p, l);
     } else {
       const hint = document.createElement("p");
       hint.className = "dim hint";
-      hint.textContent = "Click a paint in the picture to take it out · right-drag to turn the camera round the item · wheel to zoom.";
+      hint.textContent = tr("promos.board.chart.hint");
       layerBox.appendChild(hint);
     }
 
@@ -2679,21 +2680,21 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     if (aim) {
       // (a shot of a board from before shots kept their framing: kept as it is now, before the camera is changed)
       if (spec && !spec.frame) void host.keepFraming(spec);
-      const actions: { label: string; title?: string; run: () => void }[] = aim.light ? [{ label: "Reset light", title: `This shot has a light of its own (${aim.light.azimuth}°, ${aim.light.elevation}°; Ctrl-drag in the camera window turns it). Back to the view's light as it is.`,
+      const actions: { label: string; title?: string; run: () => void }[] = aim.light ? [{ label: tr("promos.board.camera.resetLight.label"), title: tr("promos.board.camera.resetLight.title", { azimuth: aim.light.azimuth, elevation: aim.light.elevation }),
         run: () => { aim.light = undefined; retake(p, l); showLayer(); } }] : [];
-      if (spec) actions.push({ label: "Fit framing", title: "Frames the subject again as it is seen now: centred, as large as the slot allows. Turning, tilting or sliding the camera keeps the framing; this fits a new one",
+      if (spec) actions.push({ label: tr("promos.board.camera.fitFraming.label"), title: tr("promos.board.camera.fitFraming.title"),
         run: () => { spec.frame = undefined; retake(p, l); } });
-      heading(layerBox, "Camera", undefined, actions);
+      heading(layerBox, tr("promos.common.camera"), undefined, actions);
       layerBox.appendChild(cameraWindow(p, l, aim));
       const turn = range(-180, 180, 1, aim.yaw, (v) => { aim.yaw = v; retake(p, l); }, (v) => `${v}°`);
       const tilt = range(-30, 70, 1, aim.pitch, (v) => { aim.pitch = v; retake(p, l); }, (v) => `${v}°`);
-      field(layerBox, "Turn", turn);
-      field(layerBox, "Tilt", tilt);
+      field(layerBox, tr("promos.board.camera.turn"), turn);
+      field(layerBox, tr("promos.board.camera.tilt"), tilt);
       // (a chart's zoom crops each of its pictures into a detail of the item; a shot's would be its Image scale over again, so it has none)
       const zoom = l.chart ? range(0.4, CHART_ZOOM, 0.01, aim.fill, (v) => { aim.fill = v; retake(p, l); }, (v) => `${Math.round(v * 100)}%`) : null;
-      if (zoom) field(layerBox, "Zoom", zoom, "How near the camera comes to the item in each picture of the chart: in, it frames a detail of it");
+      if (zoom) field(layerBox, tr("promos.board.camera.zoom.label"), zoom, tr("promos.board.camera.zoom.title"));
       // (the field of view of a shot's lens: wide is near and deep, narrow is far and flat; the framing keeps what it frames the same size)
-      if (spec) field(layerBox, "Field of view", range(10, 90, 1, spec.fov ?? PROMO_FOV, (v) => {
+      if (spec) field(layerBox, tr("promos.board.camera.fov.label"), range(10, 90, 1, spec.fov ?? PROMO_FOV, (v) => {
         // (a shot at a distance shared with others, RED's and BLU's: the distance goes with the lens, so the character keeps its size)
         const half = (deg: number) => Math.tan((deg * Math.PI) / 360);
         const k = half(spec.fov ?? PROMO_FOV) / half(v);
@@ -2702,34 +2703,34 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         if (spec.frame) spec.frame = { ...spec.frame, distance: spec.frame.distance * k };
         spec.fov = v;
         retake(p, l);
-      }, (v) => `${v}°`), "The camera's lens, as a vertical angle: wide (high) is near the subject and deep, narrow (low) far and flat");
+      }, (v) => `${v}°`), tr("promos.board.camera.fov.title"));
       cameraSync = () => { setSlider(turn, aim.yaw); setSlider(tilt, aim.pitch); if (zoom) setSlider(zoom, aim.fill); };
       // the picture's shots of the item's other styles: linked (camera, light, effects and scale) unless unlinked here
       if (spec) {
         const others = styleSiblings(p, { ...l, shot: { ...spec, sync: true } });
         if (others.length || spec.sync === false) {
-          check(layerBox, "Linked styles", spec.sync !== false, (v) => {
+          check(layerBox, tr("promos.board.camera.linkedStyles.label"), spec.sync !== false, (v) => {
             spec.sync = v;
             if (v) retake(p, l); // linked again: the others take this one's camera
-          }, "Camera, light, effects and scale shared with this picture's shots of the other styles");
+          }, tr("promos.board.camera.linkedStyles.title"));
         }
       }
       // charts of this item's other styles: kept in step (on unless taken out of step)
       const chart = l.chart;
       if (chart && pictures.some((q) => q.layers.some((x) => x !== l && x.chart && x.chart.item === chart.item && x.chart.role === chart.role))) {
-        check(layerBox, "Linked charts", chart.sync !== false, (v) => {
+        check(layerBox, tr("promos.board.camera.linkedCharts.label"), chart.sync !== false, (v) => {
           chart.sync = v;
           if (v) retake(p, l); // linked again: the others take this one's settings
-        }, "Camera, paints and layout shared with the charts of the other styles");
+        }, tr("promos.board.camera.linkedCharts.title"));
       }
     }
     if (spec && p.kind === "Thumbnail") studioFields(p, l, spec);
     if (spec) {
       // where the pose is from (a taunt or an animation, and where in it), and another roll of it or of the outfit
       const rolls: { label: string; title: string; run: () => void }[] = [];
-      if (spec.randomPose) rolls.push({ label: spec.group ? "New poses" : "New pose", title: "A random taunt or animation again, stopped on a frame that frames well" + (spec.group ? " (for every character)" : ""), run: () => retake(p, l, () => host.repose(spec)) });
-      if (spec.reroll) rolls.push({ label: spec.group ? "New outfits" : "New outfit", title: spec.group ? "Roll every character's loadout again (the item stays)" : "Roll this character's loadout again (the item stays)", run: () => retake(p, l, () => host.reroll(spec)) });
-      heading(layerBox, spec.group ? "Line-up" : "Pose", undefined, rolls);
+      if (spec.randomPose) rolls.push({ label: spec.group ? tr("promos.board.layer.newPoses") : tr("promos.board.layer.newPose"), title: spec.group ? tr("promos.board.shot.newPoses.title") : tr("promos.board.shot.newPose.title"), run: () => retake(p, l, () => host.repose(spec)) });
+      if (spec.reroll) rolls.push({ label: spec.group ? tr("promos.board.layer.newOutfits") : tr("promos.board.layer.newOutfit"), title: spec.group ? tr("promos.board.shot.rerollAll.title") : tr("promos.board.shot.reroll.title"), run: () => retake(p, l, () => host.reroll(spec)) });
+      heading(layerBox, spec.group ? tr("promos.board.shot.lineup") : tr("promos.common.pose"), undefined, rolls);
       if (spec.group) {
         // (characters placed by hand in 3D move apart from the middle of the row, their places kept as they are otherwise)
         const placed = spec.group.every((c) => c.place);
@@ -2747,22 +2748,22 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
           was = v;
           retake(p, l);
         });
-        field(layerBox, "Spacing", spacing, "How far apart the characters stand, middle to middle");
+        field(layerBox, tr("promos.board.shot.spacing.label"), spacing, tr("promos.board.shot.spacing.title"));
       }
       if (!spec.group) poseFields(p, l, spec);
       // the particle effects in the shot: how far in they are, and another roll of their chances
-      heading(layerBox, "Particle effects", undefined, [{ label: "Reroll", title: "Another seed for the effects' chances: where each particle is, which way it went", run: () => { const s = l.shot!.particles!; s.seed = Math.floor(Math.random() * 0x7fffffff); retake(p, l); } }]);
+      heading(layerBox, tr("promos.board.shot.particles.header"), undefined, [{ label: tr("promos.board.shot.particles.reroll.label"), title: tr("promos.board.shot.particles.reroll.title"), run: () => { const s = l.shot!.particles!; s.seed = Math.floor(Math.random() * 0x7fffffff); retake(p, l); } }]);
       const particles = (spec.particles ??= { seed: Math.floor(Math.random() * 0x7fffffff), time: 2 });
       const when = range(0, 10, 0.1, particles.time, (v) => { particles.time = v; retake(p, l); });
-      when.title = "How far into their run the particle effects are in the shot (seconds): they are started from the same seed and run this long each time the shot is taken";
-      field(layerBox, "Time", when);
+      when.title = tr("promos.board.shot.particles.time.title");
+      field(layerBox, tr("promos.board.shot.particles.time.label"), when);
     }
     // a paint chart: the live chart editor's settings, drawn again at once
     const chart = l.chart;
     if (chart) {
       const o = (chart.options ??= structuredClone(DEFAULT_CHART));
       const again = () => retake(p, l);
-      heading(layerBox, "Paints");
+      heading(layerBox, tr("promos.board.chart.paints"));
       const choose = <T extends string | number>(label: string, options: [T, string][], get: () => T, set: (v: T) => void) => {
         const sel = document.createElement("select");
         options.forEach(([, text], i) => sel.add(new Option(text, String(i))));
@@ -2770,34 +2771,34 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
         sel.onchange = () => { set(options[Number(sel.value)][0]); again(); };
         field(layerBox, label, sel);
       };
-      choose("Unpainted first", [["none", "Not shown"], ["red", "RED"], ["both", "RED and BLU"]], () => (o.unpainted === true ? "red" : o.unpainted === false ? "none" : o.unpainted), (v) => (o.unpainted = v));
-      choose("Team paints", [["both", "Both teams"], ["own", "RED only"]], () => o.teams, (v) => (o.teams = v));
-      check(layerBox, "Cosmetic only", o.cosmeticOnly, (v) => { o.cosmeticOnly = v; again(); });
-      heading(layerBox, "Layout");
+      choose(tr("promos.board.chart.unpainted.label"), [["none", tr("promos.board.chart.unpainted.none")], ["red", tr("promos.common.red")], ["both", tr("promos.board.chart.unpainted.both")]], () => (o.unpainted === true ? "red" : o.unpainted === false ? "none" : o.unpainted), (v) => (o.unpainted = v));
+      choose(tr("promos.board.chart.teams.label"), [["both", tr("promos.board.chart.teams.both")], ["own", tr("promos.board.chart.teams.red")]], () => o.teams, (v) => (o.teams = v));
+      check(layerBox, tr("promos.board.chart.cosmeticOnly"), o.cosmeticOnly, (v) => { o.cosmeticOnly = v; again(); });
+      heading(layerBox, tr("promos.board.chart.layout"));
       const cols = range(0, 16, 1, o.cols, (v) => { o.cols = v; again(); });
-      cols.title = "How many across (0: as many as fit)";
-      field(layerBox, "Columns", cols);
-      field(layerBox, "Gap across", range(0, 200, 1, o.gapX, (v) => { o.gapX = v; again(); }));
-      field(layerBox, "Gap down", range(0, 200, 1, o.gapY, (v) => { o.gapY = v; again(); }));
-      field(layerBox, "Edge margin", range(0, 300, 1, o.padding, (v) => { o.padding = v; again(); }));
-      choose("Align", [["center", "Centre"], ["left", "Left"]], () => o.align, (v) => (o.align = v));
-      choose("Cell shape", [[1, "Square"], [4 / 3, "4:3"], [3 / 4, "3:4 (tall)"], [16 / 9, "16:9"]], () => o.cellAspect, (v) => (o.cellAspect = v));
+      cols.title = tr("promos.board.chart.columns.title");
+      field(layerBox, tr("promos.board.chart.columns.label"), cols);
+      field(layerBox, tr("promos.board.chart.gapAcross"), range(0, 200, 1, o.gapX, (v) => { o.gapX = v; again(); }));
+      field(layerBox, tr("promos.board.chart.gapDown"), range(0, 200, 1, o.gapY, (v) => { o.gapY = v; again(); }));
+      field(layerBox, tr("promos.board.chart.edgeMargin"), range(0, 300, 1, o.padding, (v) => { o.padding = v; again(); }));
+      choose(tr("promos.board.chart.align"), [["center", tr("promos.common.centre")], ["left", tr("promos.common.left")]], () => o.align, (v) => (o.align = v));
+      choose(tr("promos.board.chart.cellShape.label"), [[1, tr("promos.board.chart.cellShape.square")], [4 / 3, "4:3"], [3 / 4, tr("promos.board.chart.cellShape.tall")], [16 / 9, "16:9"]], () => o.cellAspect, (v) => (o.cellAspect = v));
       // the paints taken out (click one in the picture to take it out; click its chip to put it back)
-      const rh = heading(layerBox, o.removed.length ? `Taken out · ${o.removed.length}` : "Taken out");
+      const rh = heading(layerBox, o.removed.length ? tr("promos.board.chart.takenOutCount", { count: o.removed.length }) : tr("promos.board.chart.takenOut"));
       if (o.removed.length) {
         const all = document.createElement("button");
-        all.textContent = "Put all back";
+        all.textContent = tr("promos.board.chart.putAllBack");
         all.onclick = () => { o.removed = []; again(); showLayer(); };
         rh.appendChild(all);
       }
       const chips = document.createElement("div");
       chips.className = "ui-chips promoChips";
-      if (!o.removed.length) chips.innerHTML = `<span class="dim hint">Click a paint in the picture to take it out.</span>`;
+      if (!o.removed.length) chips.innerHTML = `<span class="dim hint">${trHtml("promos.board.chart.takenOutEmpty")}</span>`;
       for (const label of o.removed) {
         const b = document.createElement("span");
         b.className = "ui-chip";
         b.textContent = `${label} ×`;
-        b.title = "Put it back";
+        b.title = tr("promos.board.chart.putBack");
         b.onclick = () => { o.removed = o.removed.filter((x) => x !== label); again(); showLayer(); };
         chips.appendChild(b);
       }
@@ -2805,10 +2806,10 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     }
     const paintable = spec?.loadout.filter((w) => w.paintable) ?? [];
     if (paintable.length) {
-      heading(layerBox, "Paint");
+      heading(layerBox, tr("promos.common.paint"));
       for (const worn of paintable) {
         const sel = document.createElement("select");
-        sel.add(new Option("No paint", ""));
+        sel.add(new Option(tr("promos.board.chart.noPaint"), ""));
         for (const paint of paintList) sel.add(new Option(paint.name, String(paint.id)));
         sel.value = worn.paint === null ? "" : String(worn.paint);
         sel.onchange = () => { worn.paint = sel.value ? Number(sel.value) : null; retake(p, l); };
@@ -2890,10 +2891,10 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   function showHistory() {
     undoButton.disabled = !undoStack.length;
     redoButton.disabled = !redoStack.length;
-    undoButton.title = `Undo (Ctrl+Z): ${undoStack.length} of ${UNDO_STEPS} steps kept`;
-    redoButton.title = `Redo (Ctrl+Shift+Z): ${redoStack.length} step${redoStack.length === 1 ? "" : "s"}`;
-    undoButton.setAttribute("aria-label", "Undo");
-    redoButton.setAttribute("aria-label", "Redo");
+    undoButton.title = tr("promos.board.undo.undoTitle", { count: undoStack.length, max: UNDO_STEPS });
+    redoButton.title = tr("promos.board.undo.redoTitle", { count: redoStack.length });
+    undoButton.setAttribute("aria-label", tr("promos.common.undo"));
+    redoButton.setAttribute("aria-label", tr("promos.common.redo"));
   }
   showHistory();
   const begin = () => { pending ??= snapshot(); };
@@ -2930,7 +2931,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     drawAll();
     showInspector();
     host.changed();
-    status.textContent = from === undoStack ? "Undone." : "Redone.";
+    status.textContent = from === undoStack ? tr("promos.board.undo.undone") : tr("promos.board.undo.redone");
     showHistory();
   }
   const keys = (ev: KeyboardEvent) => {
@@ -2961,12 +2962,12 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   };
 
   $(".promoExportPsd").onclick = async () => {
-    status.textContent = "Exporting the Photoshop files…";
-    status.textContent = await host.exportAll(pictures, look, "psd").catch((err) => `Could not export: ${String(err)}`);
+    status.textContent = tr("promos.board.export.exportingPsd");
+    status.textContent = await host.exportAll(pictures, look, "psd").catch((err) => tr("promos.board.export.failed", { error: String(err) }));
   };
   $(".promoExportAll").onclick = async () => {
-    status.textContent = "Exporting…";
-    status.textContent = await host.exportAll(pictures, look).catch((err) => `Could not export: ${String(err)}`);
+    status.textContent = tr("promos.board.export.exporting");
+    status.textContent = await host.exportAll(pictures, look).catch((err) => tr("promos.board.export.failed", { error: String(err) }));
   };
   boardKeys.add(keys);
   $(".promoNew").onclick = () => host.newSet();

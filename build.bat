@@ -23,6 +23,12 @@ rem Release lookup expects the helper beside the viewer under native, including 
 if not exist "target\release\native" mkdir "target\release\native"
 copy /y "target\particle-probe\particle-probe-package.exe" "target\release\native\particle-probe.exe" >nul
 if errorlevel 1 goto :fail
+rem The language files are read at runtime from "languages" beside the exe (edit them, then reload in Settings > Language).
+rem Copied over on every build: a translation of your own goes in a folder of its own name, which the build leaves alone.
+robocopy "locales" "target\release\languages" /E /NFL /NDL /NJH /NJS /NP >nul
+if errorlevel 8 goto :fail
+robocopy "locales" "share\TF2Workbench\languages" /E /NFL /NDL /NJH /NJS /NP >nul
+if errorlevel 8 goto :fail
 rem Preserve existing poses when rebuilding the portable folder.
 if not exist "share\TF2Workbench\poses" mkdir "share\TF2Workbench\poses"
 if not exist "share\TF2Workbench\native" mkdir "share\TF2Workbench\native"
@@ -48,6 +54,9 @@ if errorlevel 1 goto :fail
   echo The helper uses the runtime DLLs from your installed 64-bit TF2; no game DLLs or assets are included here.
   echo.
   echo The "poses" folder holds saved poses. Copy .json files in or out of it to share poses.
+  echo.
+  echo The "languages" folder holds the text of the interface, a folder per language ^(YAML files^). Edit them with any text
+  echo editor and reload them in Settings ^> Language. To translate, copy "en" to a folder of its own name ^(as "de"^).
   echo.
   echo Free of charge. LICENSE, NOTICE.md and the licenses folder ^(Valve's Source 1 SDK license and notices^) must stay with every copy.
 ) > share\TF2Workbench\README.txt

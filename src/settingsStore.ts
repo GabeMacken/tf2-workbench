@@ -26,6 +26,8 @@ export const DEFAULTS: Settings = {
   screenshotScale: 2,
   screenshotTransparent: true,
   hotkeys: {},
+  language: "en",
+  languageAutoReload: false,
 };
 
 let current: Settings = { ...DEFAULTS };

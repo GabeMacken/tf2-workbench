@@ -52,8 +52,18 @@ export interface Settings {
   screenshotTransparent: boolean;
   /** The bindings the user changed, by action id (see hotkeys.ts); the others have their default. */
   hotkeys: Record<string, string>;
+  /** The language of the interface (a folder of the languages folder). */
+  language: string;
+  /** The language's files are read again when they change. */
+  languageAutoReload: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
+
+/** The language files (see languages.rs): where they are, which languages there are, one's files, and a stamp that changes with them. */
+export const languagesFolder = () => invoke<string>("languages_folder");
+export const listLanguages = () => invoke<string[]>("list_languages");
+export const readLanguage = (code: string) => invoke<{ name: string; text: string }[]>("read_language", { code });
+export const languageStamp = (code: string) => invoke<string>("language_stamp", { code });
 export const clearTauntCache = () => invoke<{ removed: number; deferred: number; bytes: number }>("clear_taunt_cache");
 export const tauntCachePath = () => invoke<string>("taunt_cache_path");
 export const setSettings = (settings: Settings) => invoke<void>("set_settings", { settings });

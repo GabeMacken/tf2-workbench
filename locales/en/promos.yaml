@@ -1,0 +1,428 @@
+# The promo board (the Promo tab): its look panel, pages, layers and their settings.
+board:
+  inspector:
+    pickPicture: Choose a picture above.
+    pickShot: Select a shot in the picture to change it.
+  look:
+    note: Shared Settings
+    shuffle:
+      title: Randomize gradient
+      label: Randomize
+    glowHeader: Shadow Outlines
+    shadowsHeader: Shadows
+    effectsHeader: 3D Effects
+    noteOwn: Local Settings
+    ownBackdrop:
+      label: Override backdrop
+      title: Override backdrop settings for this page
+    border:
+      title: A line round every picture, inside its edge
+    inset: Inset
+    corners:
+      label: Corners
+      title: "How round the corners are (0: square)"
+    cutCorners:
+      label: Cut the corners
+      title: The picture cut round the border's corners (transparent outside them), not square behind them
+    borderColour:
+      backdrop: The backdrop's
+      own: Its own
+    lighter: Lighter
+    ownColour: Its colour
+    glow:
+      label: Use Shadow Outlines
+      title: Shadow outline around characters for improved contrast
+    viewLook:
+      label: Use 3D Post-Processing
+      title: 3D Post-Processing (colour grade, bloom, AO, depth of field, etc)
+    shadows:
+      label: Directional Shadows
+      title: Enable directional character shadows
+      direction:
+        label: Direction
+        title: "0: Straight back"
+      spread:
+        label: Spread
+        title: "0: parallel, -1: converging, 1: diverging"
+      length:
+        label: Length
+        title: Shadow length
+      softness:
+        title: Shadow softness
+      taper:
+        label: Shadow fade
+        title: Max transparency at shadow's tip
+      colour:
+        title: "Shadow colour"
+      blend:
+        title: "Shadow blend mode"
+      opacity:
+        title: "Shadow opacity"
+  newSet:
+    title: Create new set
+    label: New set…
+  export:
+    psd:
+      title: Export as Photoshop files with editable layers
+      label: Export PSDs…
+    all:
+      label: Export all…
+    exportingPsd: Exporting Photoshop files…
+    exporting: Exporting…
+    failed: "Export failed: {error}"
+  pages:
+    aria: Pictures
+    renameHint: Double-click to rename
+    newAfter: Insert page
+    delete: Delete page
+    add:
+      title: "Add page"
+      aria: New page
+      blank: Blank page
+      overlays: New page (copy overlays)
+      copy: Duplicate page
+      thumbnail: Square thumbnail (512 × 512)
+      thumbnailOverlays: Square thumbnail (with overlays) (512 × 512)
+      paintChart: Paint chart…
+    nameAria: Page name
+  help: "Click: select · Click+drag: move · Right drag: rotate perspective · Click: remove paint image · Ctrl+C, Ctrl+V: paste, Ctrl+Shift+V paste linked · Del: delete"
+  mask:
+    statusShaping: "Drag the handles to shape the fade, or drag across the picture to redraw (Shift: snap angle). Esc when done."
+    statusDrawing: "Drag across the image to set the fade points (Shift: snap angle)."
+    move: Translate
+    done: Apply (Esc)
+    shape: Edit mask shape
+    add: "Add fade mask (click + drag)"
+    linear: Linear
+    radial: Radial
+    shadowShown: "Disable shadow"
+    shadowOff: "Enable shadow"
+    invert: "Invert fade"
+    hide: Hide fade
+    show: Show fade
+    findingParts: Finding character parts...
+    remove: Remove fade mask
+    linearTitle: Linear fade
+    radialTitle: Radial fade
+    keep:
+      arms: Preserve arm opacity
+      head: Preserve head opacity
+      weapon: Preserve weapon opacity
+  status:
+    retaking: Retaking shot...
+    retakeFailed: "Failed to retake shot: {error}"
+  picture:
+    fileName: File name
+    borderRow: "Border: Drag to rearrange"
+    layerRow: "Layer: Drag to rearrange"
+    ownBackdrop: Backdrop (Overridden)
+    everyPicture: Backdrop (SHARED)
+    add:
+      label: + Add
+      title: Add layer
+      characters: Characters…
+      image: Image from file…
+      overlay: Background overlay…
+    header: "{kind} picture"
+    linkedChain: "Linked: the same shot and place in {count, plural, one {# other picture} other {# other pictures}}"
+    addFailed: "Could not add layer: {error}"
+  characters:
+    takingGroup: Taking group shot…
+    taking: Taking character shot…
+    added: Character Added. Edit in 3D or right-click to dress, pose or change class.
+    remove: Delete
+    another: + Add character
+    classAria: "Character {n}: class"
+    groupHint: "{count} characters in shot."
+    aloneHint: Add additional characters to create a group scene.
+  chartPopup:
+    search: Search cosmetics…
+    searchAria: Search cosmetics
+    make: Generate paint chart
+    noMatch: No matches.
+    inScenes: In active scenes
+    noneInScenes: No paintable items found in active scenes.
+    workshop: Workshop
+    noneInWorkshop: No paintable workshop cosmetics found (tf/workshop/import_source).
+    taking: Generating paint chart for {item}…
+    failed: "Failed to generate paint chart: {error}"
+  overlay:
+    reading: Reading texture…
+    texture: Texture
+    anotherTexture: Change texture
+    tileSize:
+      label: Tile scale
+      title: "Tile scale factor"
+    rotation:
+      title: Texture rotation
+    grey:
+      label: Monochrome
+      title: "Desaturate texture to greyscale"
+    readFailed: "Failed to read texture: {error}"
+  ground:
+    width:
+      title: Scale relative to image width
+    depth:
+      label: Depth
+      title: "Ground depth"
+    softness:
+      title: "Edge fade softness (0: hard edge, 1: fully soft)"
+    colour:
+      title: "Ground colour"
+    noTexture: No texture
+    removeTexture: Remove texture
+    addTexture: Add ground texture
+    strength:
+      title: Texture strength
+    rotation:
+      title: Texture rotation
+    grey:
+      title: "Desaturate texture"
+  layer:
+    opacity:
+      title: Ground opacity
+    blend:
+      title: Ground blend mode
+    editIn3d:
+      label: Edit in 3D…
+      title: "Edit character in 3D"
+    newPoses: New poses
+    newPose: New pose
+    newOutfits: New outfits
+    newOutfit: New outfit
+    putBack: Restore
+    toFront: Bring to front
+    toBack: Send to back
+    relinkMenu: Link to others
+    selectFirst: Select a layer first
+    copy:
+      title: "Copy layer (Ctrl+C)"
+    duplicate:
+      title: Duplicate layer
+    unlink:
+      label: Unlink
+      title: "Unlink layer"
+    relink:
+      label: Link back
+      title: "Link layer back to others"
+    delete:
+      title: Delete layer
+    editFailed: "Failed to open in 3D scene: {error}"
+    unlinkMenu: Unlink data (linked in {count, plural, one {# other} other {# others}})
+    linkedNote: "Linked: shared data {count, plural, one {# other picture} other {# other pictures}}."
+    copyNote: A copy of its own; {count, plural, one {# other picture shares} other {# other pictures share}} the same data.
+  camera:
+    hintChart: "Drag: rotate · right-drag: pan · Ctrl-drag: rotate light · Scroll: zoom"
+    hint: "Drag: rotate · right-drag: pan · Ctrl-drag: rotate light"
+    fitFraming:
+      label: Fit framing
+      title: "Frames the subject again as it is seen now: centred, as large as the slot allows. Turning, tilting or sliding the camera keeps the framing; this fits a new one"
+    resetLight:
+      label: Reset light
+      title: This shot has a light of its own ({azimuth}°, {elevation}°; Ctrl-drag in the camera window turns it). Back to the view's light as it is.
+    turn: Turn
+    tilt: Tilt
+    zoom:
+      label: Zoom
+      title: "How near the camera comes to the item in each picture of the chart: in, it frames a detail of it"
+    fov:
+      label: Field of view
+      title: "The camera's lens, as a vertical angle: wide (high) is near the subject and deep, narrow (low) far and flat"
+    linkedStyles:
+      label: Linked styles
+      title: Camera, light, effects and scale shared with this picture's shots of the other styles
+    linkedCharts:
+      label: Linked charts
+      title: Camera, paints and layout shared with the charts of the other styles
+    peekFailed: "Could not look through the camera: {error}"
+  text:
+    together: Their look changes together (each keeps what it says)
+    says: Says
+    font: Font
+    regular: Regular
+    semibold: Semibold
+    bold: Bold
+    weight: Weight
+    size: Font size
+    lines: Lines
+    outline: Outline
+    applyAll:
+      label: Apply to every text
+      title: Give every text of every picture this font, weight, size, colour, outline and shadow
+    applied: Every text has this look now.
+    selected: Text · {count} selected
+  studio:
+    header: Studio light
+    reset:
+      title: "The classic rig again: a warm key high on the right, a cool fill low on the left, a rim behind"
+    randomize:
+      label: Randomize
+      title: "Another three-point setup: the key on one side and above, the fill on the other and dimmer, the rim behind, in colours that go together"
+    flip:
+      label: Flip
+      title: "Mirror the rig left to right: the key, the fill and the rim each to the other side (the pivot too)"
+    on:
+      label: Three-point light
+      title: Light the thumbnail with a studio rig of three lights (key, fill, rim) in place of the scene's light
+    own:
+      label: Own light setup
+      title: "Off: the same studio light as every other thumbnail of the set (a change here changes them all) · On: this thumbnail's own"
+    hint: "Drag the ball: all three lights · drag K, F, R: one light · Ctrl-drag in the camera window: the pivot"
+    pivotRound:
+      label: Pivot round
+      title: Turns the three lights together round the subject
+    pivotOver:
+      label: Pivot over
+      title: Turns the three lights together over the subject
+    brightness:
+      label: Brightness
+      title: All three lights at once
+    colours:
+      label: Key · fill · rim
+      title: The colours of the key, the fill and the rim
+    ambient:
+      label: Ambient
+      title: "The light from everywhere under the rig: low lets the rig shape the subject"
+    ao:
+      label: Ambient occlusion
+      title: Darkens the creases and where parts meet, as a close shot shows them
+    role:
+      label: "{role, select, key {Key} fill {Fill} other {Rim}}"
+      brightness: How bright the {role, select, key {key} fill {fill} other {rim}} light is
+      colour: The {role, select, key {key} fill {fill} other {rim}} light's colour
+    aoStrength: AO strength
+  pose:
+    loading: Loading the poses…
+    time:
+      title: Where in the taunt or animation the pose is taken
+    timeline: Timeline
+    animations: Animations
+    taunts: Taunts
+  bodygroups:
+    header: Bodygroups
+    reset:
+      title: Back to what the cosmetics set (• marks a part set by hand)
+    none: This class has no bodygroups.
+    shown: Shown or hidden ({why, select, hand {set by hand in this shot} item {as a cosmetic it wears sets it} other {the default}})
+    model: Which model it shows ({why, select, hand {set by hand in this shot} item {as a cosmetic it wears sets it} other {the default}})
+    ownModel: 0 (its own)
+  border:
+    note: "Every picture's: a line round it, inside its edge"
+  shot:
+    framing:
+      character: On the character
+      item: Item alone
+      label: Framing
+      title: "On the character: the whole character, framed on the item, in a pose that shows it · Item alone: the item by itself, as the icons are"
+    image:
+      reset:
+        title: "Put it back where it was: its scale, place and turn as it was taken"
+      scale:
+        label: Image scale
+        title: How big the image is on the picture (it is taken again sharper when let go); the camera's Zoom frames the shot itself
+      rotation:
+        label: Image rotation
+        title: How far the image is turned on the picture, about its middle
+    rerollAll:
+      title: Roll every character's loadout again (the item stays)
+    reroll:
+      title: Roll this character's loadout again (the item stays)
+    lineup: Line-up
+    spacing:
+      label: Spacing
+      title: How far apart the characters stand, middle to middle
+    particles:
+      header: Particle effects
+      reroll:
+        label: Reroll
+        title: "Another seed for the effects' chances: where each particle is, which way it went"
+      time:
+        title: "How far into their run the particle effects are in the shot (seconds): they are started from the same seed and run this long each time the shot is taken"
+        label: Time
+    newPose:
+      title: A random taunt or animation again, stopped on a frame that frames well
+    newPoses:
+      title: A random taunt or animation again, stopped on a frame that frames well (for every character)
+  chart:
+    hint: Click a paint in the picture to take it out · right-drag to turn the camera round the item · wheel to zoom.
+    paints: Paints
+    unpainted:
+      label: Unpainted first
+      none: Not shown
+      both: RED and BLU
+    teams:
+      label: Team paints
+      both: Both teams
+      red: RED only
+    cosmeticOnly: Cosmetic only
+    layout: Layout
+    columns:
+      title: "How many across (0: as many as fit)"
+      label: Columns
+    gapAcross: Gap across
+    gapDown: Gap down
+    edgeMargin: Edge margin
+    align: Align
+    cellShape:
+      square: Square
+      label: Cell shape
+      tall: 3:4 (tall)
+    takenOut: Taken out
+    putAllBack: Put all back
+    putBack: Put it back
+    noPaint: No paint
+    takenOutCount: Taken out · {count}
+    takenOutEmpty: Click a paint in the picture to take it out.
+  undo:
+    undone: Undone.
+    redone: Redone.
+    undoTitle: "Undo (Ctrl+Z): {count} of {max} steps kept"
+    redoTitle: "Redo (Ctrl+Shift+Z): {count, plural, one {# step} other {# steps}}"
+  layers:
+    one: “{name}”
+    many: "{count, plural, one {# layer} other {# layers}}"
+  paste:
+    copiedToClipboard: Copied {what}. Ctrl+V in a picture puts it there as a copy of its own; Ctrl+Shift+V linked (the same shot and place).
+    linked: Linked {what} into this picture.
+    copied: Copied {what} into this picture.
+    tookOut: Took {what} out of this picture.
+    tookOutShared: Took {what} out of this picture (the other pictures keep theirs).
+common:
+  backdrop: Backdrop
+  layers: Layers
+  border: Border
+  show: Show
+  hide: Hide
+  text: Text
+  ground: Ground
+  add: Add
+  style: Style
+  overlay: Overlay
+  change: Change…
+  rotation: Rotation
+  remove: Remove
+  addMore: Add…
+  image: Image
+  left: Left
+  centre: Centre
+  right: Right
+  shadow: Shadow
+  copy: Copy
+  duplicate: Duplicate
+  delete: Delete
+  reset: Reset
+  pose: Pose
+  camera: Camera
+  red: RED
+  paint: Paint
+  undo: Undo
+  redo: Redo
+  width: Width
+  colour: Colour
+  opacity: Opacity
+  size: Size
+  strength: Strength
+  softness: Softness
+  blend: Blend
+  reading: Reading…
+  loading: Loading…
