@@ -160,6 +160,23 @@ export interface PickHit {
   y: number;
 }
 
+/** A body mask's texels (read once per texture), to tell on the CPU which vertices it hides; null until it has loaded. */
+const maskTexels = new WeakMap<THREE.Texture, { data: Uint8ClampedArray; w: number; h: number }>();
+function bodyMaskPixels(texture: THREE.Texture): { data: Uint8ClampedArray; w: number; h: number } | null {
+  const had = maskTexels.get(texture);
+  if (had) return had;
+  const image = texture.image as CanvasImageSource & { width: number; height: number } | undefined;
+  if (!image?.width || !image.height) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(image, 0, 0);
+  const out = { data: ctx.getImageData(0, 0, image.width, image.height).data, w: image.width, h: image.height };
+  maskTexels.set(texture, out);
+  return out;
+}
+
 export class Viewer {
   readonly cameras: CameraRig;
   readonly cameraOverlay: CameraOverlay;
@@ -3669,6 +3686,55 @@ void main() {
       }
     }
     return box;
+  }
+
+  /**
+   * Where every part of the characters shown (the body, what they wear and hold) is in a picture of w × h through `camera`, in its pixels
+   * from its top left: from their vertices as posed, so nothing is left out and it changes smoothly as the camera turns. Not the particle
+   * effects. Null when nothing is in front of the camera.
+   */
+  screenBounds(actors: Actor[], camera: THREE.PerspectiveCamera, w: number, h: number): { x0: number; y0: number; x1: number; y1: number } | null {
+    camera.updateMatrixWorld(true);
+    const toClip = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    const p = new THREE.Vector3(), m4 = new THREE.Matrix4();
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const a of actors) {
+      for (const mesh of a.meshes()) {
+        let shown = mesh.visible;
+        mesh.traverseAncestors((o) => { if (!o.visible) shown = false; });
+        const pos = mesh.geometry.getAttribute("position");
+        if (!shown || mesh.userData.preview || !pos) continue;
+        mesh.updateMatrixWorld(true);
+        const skinned = mesh as THREE.SkinnedMesh;
+        if (skinned.isSkinnedMesh) skinned.skeleton.update();
+        m4.multiplyMatrices(toClip, mesh.matrixWorld);
+        const k = m4.elements;
+        // what the shaders leave out is left out here too: parts hidden by vertex, and by the body mask (an item shown alone)
+        const hideW = mesh.geometry.getAttribute("hideW");
+        const bodyMask = mesh.userData.bodyMask as { texture: THREE.Texture; bits: number } | undefined;
+        const maskData = bodyMask?.bits ? bodyMaskPixels(bodyMask.texture) : null;
+        const uv = maskData ? mesh.geometry.getAttribute("uv") : null;
+        for (let i = 0; i < pos.count; i++) {
+          if (hideW && hideW.getX(i) > 0.5) continue;
+          if (maskData && uv) {
+            const tx = Math.min(maskData.w - 1, Math.max(0, Math.floor(uv.getX(i) * maskData.w)));
+            const ty = Math.min(maskData.h - 1, Math.max(0, Math.floor(uv.getY(i) * maskData.h)));
+            const at = (ty * maskData.w + tx) * 4;
+            if ((maskData.data[at] + maskData.data[at + 1] * 256) & bodyMask!.bits) continue;
+          }
+          mesh.getVertexPosition(i, p); // (posed: the morphs and the bones applied)
+          const cw = k[3] * p.x + k[7] * p.y + k[11] * p.z + k[15];
+          if (cw <= camera.near) continue; // (behind the lens, or at it)
+          const sx = ((k[0] * p.x + k[4] * p.y + k[8] * p.z + k[12]) / cw * 0.5 + 0.5) * w;
+          const sy = (0.5 - (k[1] * p.x + k[5] * p.y + k[9] * p.z + k[13]) / cw * 0.5) * h;
+          if (sx < x0) x0 = sx;
+          if (sx > x1) x1 = sx;
+          if (sy < y0) y0 = sy;
+          if (sy > y1) y1 = sy;
+        }
+      }
+    }
+    return x1 < x0 ? null : { x0, y0, x1, y1 };
   }
 
   /** Starts a selection (box, lasso or brush) over a character's body, or over the items it wears, as the view looks now. */

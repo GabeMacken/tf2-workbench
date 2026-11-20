@@ -4,7 +4,7 @@
  * changes, images only when they are new (a shot taken again), and read back at startup beside the scenes of the last session.
  */
 import { listPromos, readPromoFile, removePromo, savePromoFile } from "../api";
-import type { Backdrop, ChartCellRect, ChartSpec, LayerBlend, OverlaySpec, PromoLayer, PromoPicture, ShotSpec, TextSpec } from "./promo";
+import { extentOf, type Backdrop, type ChartCellRect, type ChartSpec, type Extent, type LayerBlend, type OverlaySpec, type PromoLayer, type PromoPicture, type ShotSpec, type TextSpec } from "./promo";
 import { parseMask, partsOf, type LayerMask } from "./promoMask";
 
 export interface SavedLayer {
@@ -27,6 +27,9 @@ export interface SavedLayer {
   cells?: ChartCellRect[];
   text?: TextSpec;
   rotation?: number;
+  pivot?: [number, number];
+  /** Where the image is in the layer's frame (a shot pictured past its frame: see extentOf). */
+  extent?: Extent;
   mask?: LayerMask;
   opacity?: number;
   blend?: LayerBlend;
@@ -85,8 +88,8 @@ export async function saveBoard(id: string, board: Omit<SavedBoard, "version" | 
       const parts = partsCanvas ? await write(partsCanvas) : undefined;
       layers.push({
         name: l.name, image: file, box: { ...l.box }, alignY: l.alignY, scale: l.scale, dx: l.dx, dy: l.dy, hidden: l.hidden,
-        shot: l.shot, chart: l.chart, link: l.link, shared: l.shared, centre: l.centre, content: l.content, opaque: l.opaque, cells: l.cells, text: l.text, rotation: l.rotation, opacity: l.opacity, blend: l.blend, overlay: l.overlay,
-        mask: l.mask, parts,
+        shot: l.shot, chart: l.chart, link: l.link, shared: l.shared, centre: l.centre, content: l.content, opaque: l.opaque, cells: l.cells, text: l.text, rotation: l.rotation, pivot: l.pivot, opacity: l.opacity, blend: l.blend, overlay: l.overlay,
+        mask: l.mask, parts, extent: extentOf.get(l.image),
       });
     }
     pictures.push({ name: p.name, item: p.item, kind: p.kind, w: p.w, h: p.h, strokeAt: p.strokeAt, backdrop: p.backdrop, layers });
@@ -131,7 +134,8 @@ export async function loadBoard(id: string): Promise<LoadedBoard> {
         images.set(s.image, img);
         written.set(img, s.image);
       }
-      const { parts, mask, ...rest } = s;
+      const { parts, mask, extent, ...rest } = s;
+      if (extent && !extentOf.has(img)) extentOf.set(img, extent);
       const l: PromoLayer = { ...rest, image: img, mask: parseMask(mask) };
       if (parts && !partsOf.has(img)) {
         try {

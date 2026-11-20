@@ -6,7 +6,7 @@
  */
 import { writePsd, type Layer } from "ag-psd";
 import { maskGrey, partsOf } from "./promoMask";
-import { cutCorners, layerPivot, layerRect, paintBackdrop, paintStroke, renderPicture, renderText, turnPoint, type BoardLook, type LayerBlend, type PromoLayer, type PromoPicture, type TextSpec } from "./promo";
+import { cutCorners, imageMask, layerPivot, layerRect, paintBackdrop, paintStroke, renderPicture, renderText, turnPoint, type BoardLook, type LayerBlend, type PromoLayer, type PromoPicture, type TextSpec } from "./promo";
 
 /** The PostScript names of the text fonts, as Photoshop knows them (a font it lacks is swapped when the text is edited, not before). */
 const PSD_FONT: Record<string, string> = {
@@ -60,9 +60,10 @@ function placed(l: PromoLayer, image: CanvasImageSource) {
 
 /** A layer's fade as a Photoshop layer mask, placed and turned as its pixels are (none without one). */
 function layerMask(l: PromoLayer): Layer["mask"] {
-  if (!l.mask?.on) return undefined;
+  const mask = imageMask(l);
+  if (!mask?.on) return undefined;
   const r = layerRect(l);
-  const grey = maskGrey(l.mask, Math.min(r.w, l.image.width), Math.min(r.h, l.image.height), l.mask.keep.length ? partsOf.get(l.image) : null);
+  const grey = maskGrey(mask, Math.min(r.w, l.image.width), Math.min(r.h, l.image.height), mask.keep.length ? partsOf.get(l.image) : null);
   const { canvas, left, top } = placed(l, grey);
   // (black round it: what is outside the layer's rectangle is hidden too)
   const ctx = canvas.getContext("2d")!;

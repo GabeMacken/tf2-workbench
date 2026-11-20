@@ -136,12 +136,18 @@ export interface ShotAim {
    */
   particles?: { seed: number; time: number };
   /**
-   * Auto framing off: the camera keeps this framing (where it looks, from how far, at what zoom) and only goes round it as it is turned,
-   * not fitted to the subject again each time the shot is taken. Absent: fitted every time.
+   * A shot's framing: fitted to its subject the first time it is taken and kept from then on, so turning, tilting, sliding the camera or a
+   * new lens only go round it and the subject never jumps in size or place. Absent: fitted the next time it is taken (Fit framing clears it).
+   * (A chart's is fitted every time.)
    */
-  frame?: { distance: number; target: [number, number, number]; fill: number };
-  /** Auto framing is off (the framing is `frame`, taken the next time the shot is when it has none yet). */
-  holdFrame?: boolean;
+  frame?: ShotFrame;
+}
+
+/** Where a shot's camera looks (world space), from how far, at what zoom. */
+export interface ShotFrame {
+  distance: number;
+  target: [number, number, number];
+  fill: number;
 }
 
 /** The field of view of a promo shot or chart unless it says otherwise (`ShotSpec.fov`): degrees, vertical. */
@@ -316,8 +322,13 @@ export interface PromoLayer {
   cells?: ChartCellRect[];
   /** A text layer: what it says and how (its image is drawn from it). */
   text?: TextSpec;
-  /** Turned (degrees, clockwise) about the middle of what is visible of it. */
+  /** Turned (degrees, clockwise) about `pivot`. */
   rotation?: number;
+  /**
+   * The point it turns about, as shares of its image (the middle of what was visible of it when it was framed): kept when the shot is
+   * taken again, so a turned layer does not move as what is seen of it changes. Absent: the middle of what is visible of it now.
+   */
+  pivot?: [number, number];
   /** A gradient that fades it out (see promoMask.ts). */
   mask?: LayerMask;
   /** How much of it shows (0..1); absent: all of it. */
@@ -718,21 +729,69 @@ export function paintStroke(ctx: CanvasRenderingContext2D, w: number, h: number,
   ctx.restore();
 }
 
-/** Where a layer is drawn, in the picture's pixels. */
-export function layerRect(l: PromoLayer): { x: number; y: number; w: number; h: number } {
-  const fit = Math.min(l.box.w / l.image.width, l.box.h / l.image.height);
-  const fw = l.image.width * fit, fh = l.image.height * fit;
-  // the fitted picture, and the point it is aligned on, which stays put as it is scaled
+/** Where an image is in its layer's frame, as shares of the frame (see {@link layerFrame}). */
+export interface Extent {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * Where a shot's image is in its frame: a shot is pictured past its frame wherever a part of the character reaches beyond it (a weapon
+ * turned toward the side), so the image is larger than the frame, and by another amount at each angle. Absent: the image is its frame.
+ */
+export const extentOf = new WeakMap<HTMLCanvasElement, Extent>();
+const WHOLE: Extent = { x0: 0, y0: 0, x1: 1, y1: 1 };
+const extentIn = (image: HTMLCanvasElement) => extentOf.get(image) ?? WHOLE;
+
+/**
+ * A layer's frame in the picture's pixels: its box as the layer is sized, moved and centred, whatever its image takes in round it. A shot
+ * taken again from another angle keeps its frame, so it does not move or change size; its mask, turning point and centring are in it.
+ * `k`: the picture's pixels to one of its image's.
+ */
+export function layerFrame(l: PromoLayer): { x: number; y: number; w: number; h: number; k: number } {
+  const e = extentIn(l.image);
+  // the frame's size in the image's pixels
+  const iw = l.image.width / (e.x1 - e.x0), ih = l.image.height / (e.y1 - e.y0);
+  const fit = Math.min(l.box.w / iw, l.box.h / ih);
+  const fw = iw * fit, fh = ih * fit;
+  // the fitted frame, and the point it is aligned on, which stays put as it is scaled
   const fx = l.box.x + (l.box.w - fw) / 2, fy = l.box.y + (l.box.h - fh) * l.alignY;
   const w = fw * l.scale, h = fh * l.scale;
   // what is visible in it in the middle of the box
   const k = fit * l.scale;
   const cx = l.centre && l.content ? l.content.x * k : 0, cy = l.centre && l.content ? l.content.y * k : 0;
-  return { x: fx + (fw - w) / 2 + l.dx - cx, y: fy + (fh - h) * l.alignY + l.dy - cy, w, h };
+  return { x: fx + (fw - w) / 2 + l.dx - cx, y: fy + (fh - h) * l.alignY + l.dy - cy, w, h, k };
 }
 
-/** Measures where a layer's visible pixels are (and, for a centred one, their middle), after its image was taken. */
-export function measureContent(l: PromoLayer) {
+/** Where a layer's image is drawn, in the picture's pixels (round its frame, by its extent). */
+export function layerRect(l: PromoLayer): { x: number; y: number; w: number; h: number } {
+  const f = layerFrame(l), e = extentIn(l.image);
+  return { x: f.x + e.x0 * f.w, y: f.y + e.y0 * f.h, w: (e.x1 - e.x0) * f.w, h: (e.y1 - e.y0) * f.h };
+}
+
+/** A layer's mask as its image has it (a mask is in the layer's frame: see {@link layerFrame}). */
+export function imageMask(l: PromoLayer): LayerMask | undefined {
+  const m = l.mask, e = extentOf.get(l.image);
+  if (!m || !e) return m;
+  const at = (p: [number, number]): [number, number] => [(p[0] - e.x0) / (e.x1 - e.x0), (p[1] - e.y0) / (e.y1 - e.y0)];
+  // (a frame's pixels are its image's: the shape of a radial fade is the same in both)
+  return { ...m, a: at(m.a), b: at(m.b) };
+}
+
+/** The middle of a layer's frame in its image's pixels. */
+function frameMiddle(image: HTMLCanvasElement): [number, number] {
+  const e = extentIn(image);
+  return [((0.5 - e.x0) / (e.x1 - e.x0)) * image.width, ((0.5 - e.y0) / (e.y1 - e.y0)) * image.height];
+}
+
+/**
+ * Measures where a layer's visible pixels are after its image was taken. `recentre` (a new image, or a shot framed anew): its centring and
+ * turning point are measured again too; else they stay where they were (`was`: the image before, to keep the centring at the new size), so
+ * a shot taken again from another angle stays put on its picture.
+ */
+export function measureContent(l: PromoLayer, recentre = true, was?: HTMLCanvasElement) {
   // (a shot's shadow and the glow of its look are not what is measured)
   const solid = solidOf.get(l.image) ?? l.image;
   const { width: w, height: h } = solid;
@@ -750,9 +809,30 @@ export function measureContent(l: PromoLayer) {
       }
     }
   }
-  // (a shot framed on the character, a thumbnail's, fills its slot as its camera framed it: what is seen of it is not moved to the middle)
-  l.content = x1 < 0 || !l.centre || l.shot?.focus !== undefined ? undefined : { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2 };
   l.opaque = x1 < 0 ? undefined : { x0, y0, x1: x1 + step, y1: y1 + step };
+  if (!recentre) {
+    // (the centring is in the frame's pixels: a larger or smaller rendering of the same framing scales it)
+    if (l.content && was) {
+      const e = extentIn(l.image), ew = extentIn(was);
+      const sx = (w / (e.x1 - e.x0)) / (was.width / (ew.x1 - ew.x0)), sy = (h / (e.y1 - e.y0)) / (was.height / (ew.y1 - ew.y0));
+      if (Math.abs(sx - 1) > 1e-9 || Math.abs(sy - 1) > 1e-9) l.content = { x: l.content.x * sx, y: l.content.y * sy };
+    }
+    return;
+  }
+  // (a shot framed on the character, a thumbnail's, fills its slot as its camera framed it: what is seen of it is not moved to the middle)
+  const [mx, my] = frameMiddle(l.image);
+  l.content = x1 < 0 || !l.centre || l.shot?.focus !== undefined ? undefined : { x: (x0 + x1) / 2 - mx, y: (y0 + y1) / 2 - my };
+  l.pivot = undefined;
+  holdPivot(l);
+}
+
+/** Fixes a layer's turning point where it is now (the middle of what is visible of it, in shares of its frame), when it has none yet. */
+export function holdPivot(l: PromoLayer) {
+  if (l.pivot || !l.opaque) return;
+  const { width: w, height: h } = solidOf.get(l.image) ?? l.image;
+  const e = extentIn(l.image);
+  const r = (v: number) => Math.round(v * 1e4) / 1e4;
+  l.pivot = [r(e.x0 + ((l.opaque.x0 + l.opaque.x1) / 2 / w) * (e.x1 - e.x0)), r(e.y0 + ((l.opaque.y0 + l.opaque.y1) / 2 / h) * (e.y1 - e.y0))];
 }
 
 /** Where a layer's visible pixels are drawn, in the picture's pixels (all of it when they were not measured). */
@@ -763,8 +843,12 @@ export function opaqueRect(l: PromoLayer): { x: number; y: number; w: number; h:
   return { x: r.x + l.opaque.x0 * sx, y: r.y + l.opaque.y0 * sy, w: (l.opaque.x1 - l.opaque.x0) * sx, h: (l.opaque.y1 - l.opaque.y0) * sy };
 }
 
-/** The point a layer turns about: the middle of what is visible of it. */
+/** The point a layer turns about: its `pivot`, else the middle of what is visible of it. */
 export function layerPivot(l: PromoLayer): [number, number] {
+  if (l.pivot) {
+    const f = layerFrame(l);
+    return [f.x + l.pivot[0] * f.w, f.y + l.pivot[1] * f.h];
+  }
   const o = opaqueRect(l);
   return [o.x + o.w / 2, o.y + o.h / 2];
 }
@@ -880,11 +964,12 @@ export function renderPicture(canvas: HTMLCanvasElement, p: PromoPicture, look: 
     }
     // (a shot whose shadow is drawn above is drawn without it)
     const src = shadowOf.has(l.image) ? solidOf.get(l.image) ?? l.image : l.image;
-    if (l.mask?.on) {
-      const parts = l.mask.keep.length ? partsOf.get(l.image) : null;
+    const mask = imageMask(l);
+    if (mask?.on) {
+      const parts = mask.keep.length ? partsOf.get(l.image) : null;
       // at the size it is drawn (no larger than its image)
       const k = Math.min(r.w * scale, src.width) / r.w;
-      ctx.drawImage(maskedImage(l, src, l.mask, r.w * k, r.h * k, parts), r.x, r.y, r.w, r.h);
+      ctx.drawImage(maskedImage(l, src, mask, r.w * k, r.h * k, parts), r.x, r.y, r.w, r.h);
     } else ctx.drawImage(src, r.x, r.y, r.w, r.h);
     ctx.restore();
   });

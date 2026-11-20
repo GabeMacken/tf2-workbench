@@ -14,14 +14,19 @@ import { createStudioSphere } from "./studioSphere";
 import { defaultMask, partsOf, type KeepPart, type LayerMask } from "./promoMask";
 import { DEFAULT_GROUND_SPEC, layer, LAYER_BLENDS, type GroundSpec, type LayerBlend, type OverlaySpec } from "./promo";
 import { openTextureBrowser, overlayImage } from "./promoOverlay";
-import { DEFAULT_CHART, DEFAULT_GLOW, DEFAULT_STROKE, DEFAULT_TEXT, TEXT_FONTS, layerPivot, layerRect, turnPoint, measureContent, opaqueRect, loadBackdropPictures, randomBackdrop, refreshText, textLayer, type ChartCellRect, renderPicture, type Backdrop, type BoardLook, type PromoLayer, type PromoPicture, type ShotSpec } from "./promo";
+import { DEFAULT_CHART, DEFAULT_GLOW, DEFAULT_STROKE, DEFAULT_TEXT, TEXT_FONTS, holdPivot, layerFrame, layerPivot, layerRect, turnPoint, measureContent, opaqueRect, loadBackdropPictures, randomBackdrop, refreshText, textLayer, type ChartCellRect, renderPicture, type Backdrop, type BoardLook, type PromoLayer, type PromoPicture, type ShotSpec } from "./promo";
 
 export interface BoardHost {
   /** Writes every picture (asks where); resolves to what to say. */
   /** Writes the pictures to a folder the user picks: as PNGs, or as layered Photoshop files. */
   exportAll(pictures: PromoPicture[], look: BoardLook, format?: "png" | "psd"): Promise<string>;
-  /** Takes a layer's shot again as its spec now says (in the promo scene), replacing its image. */
-  retake(layer: PromoLayer, live?: boolean): Promise<void>;
+  /** Takes a layer's shot again as its spec now says (in the promo scene), replacing its image; true when it was framed anew. */
+  retake(layer: PromoLayer, live?: boolean): Promise<boolean>;
+  /**
+   * Fixes a shot's framing from its camera as it is now, when it has none (a shot of a board kept from before shots kept theirs): called
+   * before its camera is changed, so the change goes round that framing instead of fitting a new one.
+   */
+  keepFraming(spec: ShotSpec): Promise<void>;
   /** A small picture through a layer's camera as its spec now says (w × h), to aim it by. */
   cameraView(layer: PromoLayer, w: number, h: number, steady?: boolean): Promise<HTMLCanvasElement>;
   /** Sets a thumbnail's framing: on the character (framed on the item, a pose rolled that shows it) or the item alone (take it again after). */
@@ -274,14 +279,14 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
   /** The handle the pointer is over (drawn larger). */
   let maskHover: MaskHandle | null = null;
   type MaskHandle = "a" | "b" | "mid" | "ratio" | "hard" | "line";
-  /** A picture point in a layer's own frame (0..1 of its upright rectangle), and back. */
+  /** A picture point in a layer's own frame (0..1 of its upright frame, see layerFrame), and back. */
   const toLocal = (l: PromoLayer, x: number, y: number): [number, number] => {
     const [ux, uy] = l.rotation ? turnPoint(x, y, layerPivot(l), -l.rotation) : [x, y];
-    const r = layerRect(l);
+    const r = layerFrame(l);
     return [(ux - r.x) / (r.w || 1), (uy - r.y) / (r.h || 1)];
   };
   const toPicture = (l: PromoLayer, u: number, v: number): [number, number] => {
-    const r = layerRect(l);
+    const r = layerFrame(l);
     return turnPoint(r.x + u * r.w, r.y + v * r.h, layerPivot(l), l.rotation ?? 0);
   };
   /** Where a mask's handles are on the picture. */
@@ -737,6 +742,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       for (const x of styleSiblings(p, l)) {
         const o = x.shot!;
         if (aim(o) === aim(s)) continue;
+        void host.keepFraming(o); // (its framing from its camera as it is, before it takes this one's)
         Object.assign(o, { yaw: s.yaw, pitch: s.pitch, fill: s.fill, panX: s.panX, panY: s.panY, light: s.light ? { ...s.light } : undefined, particles: s.particles ? { ...s.particles } : undefined, scaleDistance: s.scaleDistance });
         queueRetake(p, x);
       }
@@ -763,7 +769,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     if (!s?.on || !s.spread) return undefined;
     const a = (s.azimuth * Math.PI) / 180, reach = (p.h * 0.6) / Math.abs(s.spread), sign = s.spread < 0 ? 1 : -1;
     const x = p.w / 2 + sign * Math.sin(a) * reach, y = p.h * 0.85 - sign * Math.cos(a) * reach;
-    const r = layerRect(l);
+    const r = layerFrame(l); // (in shares of the shot's frame: its image reaches past it by another amount at each angle)
     const round = (v: number) => Math.round(v * 1000) / 1000;
     return [round((x - r.x) / Math.max(1, r.w)), round((y - r.y) / Math.max(1, r.h))];
   };
@@ -797,13 +803,17 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
             panelStale = true; // a new outfit: the panel lists what it wears
           }
           if (l.shot) l.shot.spreadPoint = spreadPointOf(job.p, l);
-          await host.retake(l, job.live);
+          // (where it turns about, from the image it has: taken again, it stays put)
+          holdPivot(l);
+          const was = l.image;
+          const framed = await host.retake(l, job.live);
           if (job.live) takenLive.set(l, job.p);
           else takenLive.delete(l);
-          measureContent(l);
+          // (its centring is measured again only when it was framed anew: a new angle does not move it)
+          measureContent(l, framed, was);
           host.changed();
           // a shared shot is the same picture everywhere it is used
-          for (const [q, x] of instancesOf(l)) { x.image = l.image; x.content = l.content; x.opaque = l.opaque; x.cells = l.cells; draw(q); }
+          for (const [q, x] of instancesOf(l)) { x.image = l.image; x.content = l.content; x.opaque = l.opaque; x.pivot = l.pivot; x.cells = l.cells; draw(q); }
           draw(job.p, job.live);
           status.textContent = "";
           // (a drag's steps one a frame at most, with the app's own frames between them)
@@ -1497,6 +1507,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     const moving = selected().map((x) => ({ x, dx: x.dx, dy: x.dy }));
     const start = { yaw: aim?.yaw ?? 0, pitch: aim?.pitch ?? 0, cx: ev.clientX, cy: ev.clientY };
     const turning = ev.button === 2 && !!aim;
+    if (turning && l.shot) void host.keepFraming(l.shot);
     preview.onpointermove = (m) => {
       if (turning) {
         aim!.yaw = Math.round(start.yaw + (m.clientX - start.cx) * TURN_PER_PIXEL);
@@ -2094,7 +2105,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
     const vx = Math.round(((W - w) / 2) * pr), vy = Math.round(((H - h) / 2) * pr), vw = Math.round(w * pr), vh = Math.round(h * pr);
-    /** Held steady while the camera is dragged or zoomed from here: the framing stays, the camera goes round (fitted again on letting go). */
+    /** A chart's look held steady while its camera is dragged or zoomed from here (fitted again on letting go); a shot keeps its framing always. */
     let steady = false;
     const hint = document.createElement("p");
     hint.className = "dim hint";
@@ -2164,7 +2175,7 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       };
       canvas.onpointerup = () => {
         canvas.onpointermove = null;
-        // (let go: framed again, as the shot will be)
+        // (let go: a chart framed again, as it will be taken)
         steady = false;
         void peek();
         retake(p, l);
@@ -2666,8 +2677,13 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
     if (l.text) textFields(p, l, l.text);
     const aim = l.shot ?? l.chart;
     if (aim) {
-      heading(layerBox, "Camera", undefined, aim.light ? [{ label: "Reset light", title: `This shot has a light of its own (${aim.light.azimuth}°, ${aim.light.elevation}°; Ctrl-drag in the camera window turns it). Back to the view's light as it is.`,
-        run: () => { aim.light = undefined; retake(p, l); showLayer(); } }] : []);
+      // (a shot of a board from before shots kept their framing: kept as it is now, before the camera is changed)
+      if (spec && !spec.frame) void host.keepFraming(spec);
+      const actions: { label: string; title?: string; run: () => void }[] = aim.light ? [{ label: "Reset light", title: `This shot has a light of its own (${aim.light.azimuth}°, ${aim.light.elevation}°; Ctrl-drag in the camera window turns it). Back to the view's light as it is.`,
+        run: () => { aim.light = undefined; retake(p, l); showLayer(); } }] : [];
+      if (spec) actions.push({ label: "Fit framing", title: "Frames the subject again as it is seen now: centred, as large as the slot allows. Turning, tilting or sliding the camera keeps the framing; this fits a new one",
+        run: () => { spec.frame = undefined; retake(p, l); } });
+      heading(layerBox, "Camera", undefined, actions);
       layerBox.appendChild(cameraWindow(p, l, aim));
       const turn = range(-180, 180, 1, aim.yaw, (v) => { aim.yaw = v; retake(p, l); }, (v) => `${v}°`);
       const tilt = range(-30, 70, 1, aim.pitch, (v) => { aim.pitch = v; retake(p, l); }, (v) => `${v}°`);
@@ -2680,16 +2696,13 @@ export function showBoard(root: HTMLElement, title: string, pictures: PromoPictu
       if (spec) field(layerBox, "Field of view", range(10, 90, 1, spec.fov ?? PROMO_FOV, (v) => {
         // (a shot at a distance shared with others, RED's and BLU's: the distance goes with the lens, so the character keeps its size)
         const half = (deg: number) => Math.tan((deg * Math.PI) / 360);
-        if (spec.scaleDistance) spec.scaleDistance *= half(spec.fov ?? PROMO_FOV) / half(v);
+        const k = half(spec.fov ?? PROMO_FOV) / half(v);
+        if (spec.scaleDistance) spec.scaleDistance *= k;
+        // (and its framing: the camera nearer or farther by as much, what it frames as large as it was)
+        if (spec.frame) spec.frame = { ...spec.frame, distance: spec.frame.distance * k };
         spec.fov = v;
         retake(p, l);
       }, (v) => `${v}°`), "The camera's lens, as a vertical angle: wide (high) is near the subject and deep, narrow (low) far and flat");
-      check(layerBox, "Auto framing", !aim.holdFrame, (v) => {
-        // off: the framing it has now stays (taken from the shot as it is); on: fitted again
-        aim.holdFrame = v ? undefined : true;
-        aim.frame = undefined;
-        retake(p, l);
-      }, "On: the camera fits the subject again each time the shot is taken (a turn or tilt reframes it). Off: the framing stays where it is and the camera only goes round it");
       cameraSync = () => { setSlider(turn, aim.yaw); setSlider(tilt, aim.pitch); if (zoom) setSlider(zoom, aim.fill); };
       // the picture's shots of the item's other styles: linked (camera, light, effects and scale) unless unlinked here
       if (spec) {

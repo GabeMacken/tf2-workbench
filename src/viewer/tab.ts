@@ -1,5 +1,5 @@
 import { icon as svgIcon, ICONS as LUCIDE, type IconName } from "../icons";
-import { shadowLayer, shadowOf, solidOf, type ShotEffects } from "./promo";
+import { extentOf, shadowLayer, shadowOf, solidOf, type ShotEffects } from "./promo";
 import { partsOf } from "./promoMask";
 import { picturePsd } from "./promoPsd";
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -63,7 +63,7 @@ import { openRandomLoadout, regionLabel, rollLoadout, type LoadoutRule, type Rol
 import { choosePose, NOT_A_POSE, NOT_ROLLED_TAUNT, rollFace, type PoseChoice, type PoseSource } from "./randomPose";
 import { layoutChart } from "./chartLayout";
 import { bodyMasksLoaded } from "./bodyMasks";
-import { DEFAULT_CHART, DEFAULT_TEXT, LINEUP_SPACING, PROMO_FOV, aimDirection, layer, measureContent, openPromo, textLayer, type ChartCellRect, pictureBlob, type ChartSpec, type PromoLayer, type PromoPicture, type PromoText, type ShotSpec } from "./promo";
+import { DEFAULT_CHART, DEFAULT_TEXT, LINEUP_SPACING, PROMO_FOV, aimDirection, layer, measureContent, openPromo, textLayer, type ChartCellRect, pictureBlob, type ChartSpec, type PromoLayer, type PromoPicture, type PromoText, type ShotFrame, type ShotSpec } from "./promo";
 import { boardShotEffects, showBoard, type BoardHost } from "./promoBoard";
 import { forgetBoard, loadBoards, saveBoard, type Written } from "./promoStore";
 import type { PaintChartOpts } from "./viewer";
@@ -4853,59 +4853,82 @@ export function createViewTab(els: Els) {
   }
 
   /**
+   * Fits a shot's framing to its characters as they stand now, seen from `dir`: centred on what is seen of them and as near as `fill` of a
+   * slot of `aspect` allows. Shots sharing a scale (`scaleDistance`) and framed items (`bounds`) are framed on their bounds instead.
+   */
+  async function fitFrame(v: Viewer, actors: Actor[], dir: THREE.Vector3, aspect: number, fill: number, fov: number, scaleDistance?: number, bounds?: THREE.Box3): Promise<ShotFrame> {
+    const cam = v.framingCamera(actors, dir, aspect, fill, fov, scaleDistance !== undefined ? scaleDistance / fill : undefined, bounds);
+    // (a silhouette, not a bounding box: a box is always roomier than what is seen)
+    if (scaleDistance === undefined && !bounds) await fitSilhouette(v, cam, actors, fill, aspect, fov, 2, PROMO_MARGIN.x, PROMO_MARGIN.y);
+    const target = cam.userData.target as THREE.Vector3 | undefined;
+    if (!target) return { distance: 100, target: [0, 0, 0], fill };
+    return { distance: cam.position.distanceTo(target), target: target.toArray() as [number, number, number], fill };
+  }
+
+  /** The camera of a framing, seen from `dir` (a zoom of `fill` over the framing's own brings it nearer by as much). */
+  function frameCamera(frame: ShotFrame, dir: THREE.Vector3, fov: number, aspect: number, fill: number): THREE.PerspectiveCamera {
+    const cam = new THREE.PerspectiveCamera(fov, aspect, 0.1, 5000);
+    const target = new THREE.Vector3(...frame.target);
+    const distance = (frame.distance * frame.fill) / fill;
+    cam.position.copy(target).addScaledVector(dir.clone().normalize(), distance);
+    cam.near = Math.max(0.1, distance / 100);
+    cam.far = distance * 20;
+    cam.lookAt(target);
+    cam.updateProjectionMatrix();
+    cam.updateMatrixWorld(true);
+    cam.userData.target = target;
+    return cam;
+  }
+
+  /**
    * A picture of one character, alone, transparent: framed for a slot of w × h from `dir` (the view's light follows it there), and taken
    * with {@link PROMO_MARGIN} more room round the slot, so what reaches past the character (a long weapon) is not cut off at the slot's
    * edge but spills over it (see {@link marginBox}).
    */
-  async function promoShot(who: Entity | Entity[], dir: THREE.Vector3, w: number, h: number, fill: number, scaleDistance?: number, pan?: { fov?: number; panX?: number; panY?: number; light?: { azimuth: number; elevation: number }; particles?: { seed: number; time: number }; studio?: StudioLight; spreadPoint?: [number, number]; parts?: boolean; frame?: { distance: number; target: [number, number, number]; fill: number }; holdFrame?: boolean }, margin = true, effects?: ShotEffects, bounds?: THREE.Box3, quick = false, steady = false): Promise<HTMLCanvasElement> {
+  async function promoShot(who: Entity | Entity[], dir: THREE.Vector3, w: number, h: number, fill: number, scaleDistance?: number, pan?: { fov?: number; panX?: number; panY?: number; light?: { azimuth: number; elevation: number }; particles?: { seed: number; time: number }; studio?: StudioLight; spreadPoint?: [number, number]; parts?: boolean; frame?: ShotFrame; w?: number; h?: number }, margin = true, effects?: ShotEffects, bounds?: () => THREE.Box3 | undefined, quick = false, framing: "kept" | "steady" | "fit" = "fit"): Promise<HTMLCanvasElement> {
     const v = ensureViewer();
     const actors = (Array.isArray(who) ? who : [who]).map((x) => x.actor);
     const fov = pan?.fov ?? PROMO_FOV;
     await bodyMasksLoaded(); // the parts an item shown alone hides are hidden by a mask texture (before the character is looked at to fit it)
-    // `steady` (a look through the camera as it is dragged): the framing the shot last had, the camera only going round it (fitted again at
-    // each step, the item alone shook as its outline changed); a zoom brings it nearer by as much
-    // (auto framing off: the framing it keeps, else the one it last had, kept from now on)
-    const kept = pan?.holdFrame ? (pan.frame ? { distance: pan.frame.distance, target: new THREE.Vector3(...pan.frame.target), fill: pan.frame.fill } : framedAt.get(pan)) : undefined;
-    if (kept && pan && !pan.frame) pan.frame = { distance: kept.distance, target: kept.target.toArray() as [number, number, number], fill: kept.fill };
-    const held = kept ?? (steady && pan ? framedAt.get(pan) : undefined);
-    let cam: THREE.PerspectiveCamera;
-    if (held) {
-      cam = new THREE.PerspectiveCamera(fov, w / h, 0.1, 5000);
-      const distance = (held.distance * held.fill) / fill;
-      cam.position.copy(held.target).addScaledVector(dir.clone().normalize(), distance);
-      cam.near = Math.max(0.1, distance / 100);
-      cam.far = distance * 20;
-      cam.lookAt(held.target);
-      cam.updateProjectionMatrix();
-      cam.updateMatrixWorld(true);
-      cam.userData.target = held.target.clone();
-    } else {
-      cam = v.framingCamera(actors, dir, w / h, fill, fov, scaleDistance !== undefined ? scaleDistance / fill : undefined, bounds);
-      // a shot of its own scale and of the characters (not one sharing its scale with others, nor a framed item) is fitted to what is seen of them,
-      // not to their bounding box (which is always roomier than they are)
-      if (scaleDistance === undefined && !bounds) await fitSilhouette(v, cam, actors, fill, w / h, fov, quick ? 1 : 2, PROMO_MARGIN.x, PROMO_MARGIN.y);
-      if (pan) {
-        framedAt.set(pan, { distance: cam.position.distanceTo(cam.userData.target as THREE.Vector3), target: (cam.userData.target as THREE.Vector3).clone(), fill });
-        if (pan.holdFrame) pan.frame = { distance: framedAt.get(pan)!.distance, target: (cam.userData.target as THREE.Vector3).toArray() as [number, number, number], fill };
-      }
+    // `kept` (a shot): the framing on its spec, fitted the first time and kept from then on, so turning, tilting or sliding the camera only
+    // goes round it (see ShotAim.frame). `steady` (a chart's look as its camera is dragged): the framing it last had. `fit`: fitted now.
+    let frame = framing === "kept" ? pan?.frame : framing === "steady" && pan ? framedAt.get(pan) : undefined;
+    if (!frame) {
+      // (fitted for the slot's shape: a look through the camera window is of another size)
+      frame = await fitFrame(v, actors, dir, pan?.w && pan.h ? pan.w / pan.h : w / h, fill, fov, scaleDistance, bounds?.());
+      if (pan && framing === "kept") pan.frame = frame;
+      else if (pan) framedAt.set(pan, frame);
     }
+    const cam = frameCamera(frame, dir, fov, w / h, fill);
     const target = slideCamera(cam, w / h, fov, pan);
     v.restoreCamera(cam.position.toArray() as [number, number, number], target.toArray() as [number, number, number]);
-    // the same camera, seeing the margin round the slot too: a taller view (the slot keeps its size in it) and a wider one
-    const mx = margin ? PROMO_MARGIN.x : 0, my = margin ? PROMO_MARGIN.y : 0;
-    const W = Math.round(w * (1 + 2 * mx)), H = Math.round(h * (1 + 2 * my));
-    cam.fov = (2 * Math.atan(Math.tan((fov * Math.PI) / 360) * (1 + 2 * my)) * 180) / Math.PI;
-    cam.aspect = W / H;
-    cam.updateProjectionMatrix();
     // (a live look, drawn again as it is dragged, does not wait two frames each time: it is taken at once)
     if (!quick) await nextFrames();
-    // the point of the picture the shadows fan out from or converge to (see ShotSpec.spreadPoint), on this shot's floor: where its camera
-    // sees that point of its image; one beyond the horizon is far off along the floor that way (where the shadows meet at the horizon)
+    // What is pictured: the frame (the slot with the margin round it, where the layer sits on its picture), grown to take in every part of
+    // the characters as they are seen now (a rocket launcher turned toward the side). In the slot's pixels from its top left, whole pixels,
+    // so that the frame's pixels are the same ones however much is added round it, and the layer does not move (see extentOf).
+    const mx = margin ? PROMO_MARGIN.x : 0, my = margin ? PROMO_MARGIN.y : 0;
+    let L = -mx * w, T = -my * h, R = w * (1 + mx), B = h * (1 + my);
+    if (margin) {
+      const seen = v.screenBounds(actors, cam, w, h);
+      // (no more than a few slots round it: a part flung far off, or right by the lens, would make a huge picture)
+      if (seen) { L = Math.max(-3 * w, Math.min(L, seen.x0)); T = Math.max(-3 * h, Math.min(T, seen.y0)); R = Math.min(4 * w, Math.max(R, seen.x1)); B = Math.min(4 * h, Math.max(B, seen.y1)); }
+    }
+    L = Math.floor(L); T = Math.floor(T); R = Math.ceil(R); B = Math.ceil(B);
+    const W = R - L, H = B - T;
+    cam.setViewOffset(w, h, L, T, W, H);
+    cam.updateProjectionMatrix();
+    // where the picture is in the frame, as shares of the frame (the layer's placement on its picture is the frame's)
+    const fw = w * (1 + 2 * mx), fh = h * (1 + 2 * my);
+    const extent = { x0: (L + mx * w) / fw, y0: (T + my * h) / fh, x1: (R + mx * w) / fw, y1: (B + my * h) / fh };
+    // the point of the picture the shadows fan out from or converge to (see ShotSpec.spreadPoint, in shares of the frame), on this shot's
+    // floor: where its camera sees that point; one beyond the horizon is far off along the floor that way (where the shadows meet at the horizon)
     let spreadPoint: [number, number] | undefined;
     if (pan?.spreadPoint) {
       cam.updateMatrixWorld(true);
       const floorY = actors[0]?.offset.y ?? 0;
-      const ray = new THREE.Vector3(pan.spreadPoint[0] * 2 - 1, 1 - pan.spreadPoint[1] * 2, 0.5).unproject(cam).sub(cam.position).normalize();
+      const sx = (pan.spreadPoint[0] * fw - mx * w - L) / W, sy = (pan.spreadPoint[1] * fh - my * h - T) / H;
+      const ray = new THREE.Vector3(sx * 2 - 1, 1 - sy * 2, 0.5).unproject(cam).sub(cam.position).normalize();
       const t = ray.y < -1e-4 ? (floorY - cam.position.y) / ray.y : Infinity;
       const flat = new THREE.Vector2(ray.x, ray.z).normalize();
       const along = Math.min(t * Math.hypot(ray.x, ray.z), 20000);
@@ -4922,6 +4945,7 @@ export function createViewTab(els: Els) {
     try {
       return await lit(async () => {
         const shot = await v.capture(1, true, { camera: cam, only: actors, size: { w: W, h: H }, canvas: true, groundShadow: shadow, look, ao });
+        if (margin) extentOf.set(shot.canvas!, extent);
         // the parts of the character, for a fade mask that keeps some of them whole (not for a drag's quick step: the full one follows)
         if (pan?.parts && !quick) partsOf.set(shot.canvas!, v.partsPicture(actors, cam, shot.canvas!.width, shot.canvas!.height));
         // with effects, the shot again without them: the character alone, for its bounds and clicks
@@ -4967,8 +4991,8 @@ export function createViewTab(els: Els) {
     }
   }
 
-  /** The framing each shot (its spec) was last taken with: where its camera looked and from how far, at what zoom (see promoShot's `steady`). */
-  const framedAt = new WeakMap<object, { distance: number; target: THREE.Vector3; fill: number }>();
+  /** The framing each chart was last looked at with (see promoShot's `steady`); a shot keeps its own on its spec. */
+  const framedAt = new WeakMap<object, ShotFrame>();
 
   /**
    * Lights the view with a studio light instead of its own while `job` runs: the rig's three lights (fixed in the world where `camera`
@@ -5576,6 +5600,7 @@ export function createViewTab(els: Els) {
     const top = Math.max(...found.map((f) => f.score));
     Object.assign(spec, pickOne(found.filter((f) => f.score >= top - 0.06))!.keep);
     spec.randomPose = true;
+    spec.frame = undefined; // a thumbnail is framed on its item, which the new pose moves
     promo().dressed.delete(spec.role);
   }
 
@@ -5655,6 +5680,7 @@ export function createViewTab(els: Els) {
     } else {
       Object.assign(spec, { regions: spec.aloneRegions ?? spec.regions, focus: undefined, focusZone: undefined, pose: undefined, poseOf: undefined, flex: undefined, weapon: null, randomPose: undefined, yaw: 24, pitch: 13, fill: 0.92 });
     }
+    spec.frame = undefined; // framed again on what it shows now
     promo().dressed.delete(spec.role);
   }
 
@@ -5770,7 +5796,9 @@ export function createViewTab(els: Els) {
     const aspect = Math.max(0.1, v.camera.aspect);
     const lens = spec.fov ?? PROMO_FOV;
     v.setFov((2 * Math.atan(Math.tan((lens * Math.PI) / 360) * aspect) * 180) / Math.PI);
-    const cam = v.framingCamera(ents.map((x) => x.actor), shotDirection(spec), spec.w / spec.h, spec.fill, lens, spec.scaleDistance !== undefined ? spec.scaleDistance / spec.fill : undefined, spec.group ? undefined : focusBounds(ents[0], spec));
+    // (the framing the shot keeps, when it has one)
+    const cam = spec.frame ? frameCamera(spec.frame, shotDirection(spec), lens, spec.w / spec.h, spec.fill)
+      : v.framingCamera(ents.map((x) => x.actor), shotDirection(spec), spec.w / spec.h, spec.fill, lens, spec.scaleDistance !== undefined ? spec.scaleDistance / spec.fill : undefined, spec.group ? undefined : focusBounds(ents[0], spec));
     const target = slideCamera(cam, spec.w / spec.h, lens, spec);
     const away = cam.position.clone().sub(target).multiplyScalar(Math.max(1, spec.w / spec.h / aspect));
     v.restoreCamera(target.clone().add(away).toArray() as [number, number, number], target.toArray() as [number, number, number]);
@@ -5918,7 +5946,7 @@ export function createViewTab(els: Els) {
       if (selected && !entities.includes(selected)) selected = keep;
     }
     const s = spec as Partial<ShotSpec>;
-    delete s.frame; delete s.holdFrame; delete s.focus; delete s.scaleDistance;
+    delete s.frame; delete s.focus; delete s.scaleDistance;
     if (parts.length === 1) {
       // a shot of the one left: its camera at the front, the character turned by the angle it was seen from
       const part = parts[0], e = live[0];
@@ -5955,8 +5983,8 @@ export function createViewTab(els: Els) {
     spec.effects ??= structuredClone(boardShotEffects());
     // (nor does a shot whose own shadow is off: one that fades out, say)
     const effects = spec.effects && (spec.regions || spec.noShadow) ? { ...spec.effects, shadow: { ...spec.effects.shadow, on: false } } : spec.effects;
-    // (a drag's step keeps the framing the shot last had, as the camera window does: not fitted again, nor measured)
-    return promoShot(e, shotDirection(spec), Math.round(spec.w * res), Math.round(spec.h * res), spec.fill, spec.scaleDistance, spec, true, effects, Array.isArray(e) || live ? undefined : focusBounds(e, spec), live, live);
+    // (framed as the spec keeps it: fitted only the first time)
+    return promoShot(e, shotDirection(spec), Math.round(spec.w * res), Math.round(spec.h * res), spec.fill, spec.scaleDistance, spec, true, effects, Array.isArray(e) ? undefined : () => focusBounds(e, spec), live, "kept");
   }
 
   /**
@@ -6172,24 +6200,43 @@ export function createViewTab(els: Els) {
       return `Saved ${pictures.length} ${format === "psd" ? "Photoshop files" : "pictures"} to ${dir}.`;
     },
     retake: (l, live) => inPromoScene(async () => {
-      if (l.shot) l.image = await takeShot(l.shot, live);
-      else if (l.chart) {
+      if (l.shot) {
+        const framed = !l.shot.frame; // (fitted now: it had no framing yet)
+        l.image = await takeShot(l.shot, live);
+        return framed;
+      }
+      if (l.chart) {
         const taken = await takeChart(l.chart);
         l.image = taken.canvas;
         l.cells = taken.cells;
       }
+      return true;
     }),
     // a quick look through a layer's camera, small: the shot's slot, or one picture of a chart
     cameraView: (l, w, h, steady) => inPromoScene(async () => {
       if (l.shot) {
         const e = l.shot.group ? await dressGroup(l.shot) : await dressForShot(l.shot);
-        // (held steady, its framing is the one it had: what a thumbnail frames is not measured again either)
-        return promoShot(e, shotDirection(l.shot), w, h, l.shot.fill, l.shot.scaleDistance, l.shot, false, undefined, Array.isArray(e) || steady ? undefined : focusBounds(e, l.shot), true, steady);
+        // (the framing the shot keeps, as it will be taken)
+        const shot = l.shot;
+        return promoShot(e, shotDirection(shot), w, h, shot.fill, shot.scaleDistance, shot, false, undefined, Array.isArray(e) ? undefined : () => focusBounds(e, shot), true, "kept");
       }
       const spec = l.chart!;
       const e = await dressForChart(spec);
-      return promoShot(e, new THREE.Vector3(...aimDirection(spec)), w, h, spec.fill, undefined, spec, false, undefined, chartBounds(e, spec), false, steady);
+      return promoShot(e, new THREE.Vector3(...aimDirection(spec)), w, h, spec.fill, undefined, spec, false, undefined, () => chartBounds(e, spec), false, steady ? "steady" : "fit");
     }),
+    keepFraming: (spec) => {
+      if (spec.frame) return Promise.resolve();
+      // (the camera as it is now: a turn made while this waits is not what it is framed from)
+      const aim = { yaw: spec.yaw, pitch: spec.pitch, fov: spec.fov };
+      return inPromoScene(async () => {
+        if (spec.frame) return;
+        const at: ShotSpec = { ...spec, ...aim };
+        const e = at.group ? await dressGroup(at) : await dressForShot(at);
+        await bodyMasksLoaded();
+        const actors = (Array.isArray(e) ? e : [e]).map((x) => x.actor);
+        spec.frame = await fitFrame(ensureViewer(), actors, shotDirection(at), spec.w / spec.h, spec.fill, at.fov ?? PROMO_FOV, spec.scaleDistance, Array.isArray(e) ? undefined : focusBounds(e, at));
+      });
+    },
     reroll: (spec) => inPromoScene(() => rerollShot(spec)),
     repose: (spec) => inPromoScene(() => (spec.focus !== undefined ? rollThumbnailPose(spec) : rollShotPose(spec))),
     framing: (spec, mode) => inPromoScene(() => setThumbnailFraming(spec, mode)),
